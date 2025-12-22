@@ -58,6 +58,15 @@ func main() {
 	defer database.Close()
 	logger.Info("Database connected successfully")
 
+	// Auto migrate in development environment
+	if cfg.IsDevelopment() {
+		if err := database.AutoMigrate(database.GetDB(), "file://migrations"); err != nil {
+			logger.Warn("Auto migration failed", zap.Error(err))
+		} else {
+			logger.Info("Auto migration completed")
+		}
+	}
+
 	// Setup router
 	router := handler.NewRouter(cfg)
 	router.Setup()
