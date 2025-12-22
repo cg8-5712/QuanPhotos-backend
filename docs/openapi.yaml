@@ -1,0 +1,1783 @@
+openapi: 3.0.3
+info:
+  title: QuanPhotos API
+  description: QuanPhotos Aviation Photography Community Platform Backend API
+  version: 1.0.0
+  contact:
+    name: QuanPhotos Team
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development Server
+  - url: https://api.quanphotos.com/api/v1
+    description: Production Server
+
+tags:
+  - name: Auth
+    description: Authentication related endpoints
+  - name: Users
+    description: User management endpoints
+  - name: Photos
+    description: Photo management endpoints
+  - name: Categories
+    description: Category management endpoints
+  - name: Tags
+    description: Tag management endpoints
+  - name: Tickets
+    description: Ticket system endpoints
+  - name: Admin
+    description: Admin management endpoints
+  - name: System
+    description: System information endpoints
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Common Response
+    BaseResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: Response code, 0 means success
+        message:
+          type: string
+          description: Response message
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+
+    # User Schema
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [guest, user, reviewer, admin]
+        avatar:
+          type: string
+        bio:
+          type: string
+        location:
+          type: string
+        photo_count:
+          type: integer
+        favorite_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    UserPublic:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        avatar:
+          type: string
+        bio:
+          type: string
+        photo_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    # Photo Schema
+    Photo:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        image_url:
+          type: string
+        thumbnail_url:
+          type: string
+        has_raw:
+          type: boolean
+        status:
+          type: string
+          enum: [pending, ai_passed, ai_rejected, approved, rejected]
+        user:
+          $ref: '#/components/schemas/UserPublic'
+        aircraft_type:
+          type: string
+        airline:
+          type: string
+        registration:
+          type: string
+        airport:
+          type: string
+        category:
+          $ref: '#/components/schemas/Category'
+        tags:
+          type: array
+          items:
+            type: string
+        exif:
+          $ref: '#/components/schemas/ExifData'
+        view_count:
+          type: integer
+        favorite_count:
+          type: integer
+        is_favorited:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        approved_at:
+          type: string
+          format: date-time
+
+    PhotoListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        thumbnail_url:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserPublic'
+        aircraft_type:
+          type: string
+        airline:
+          type: string
+        registration:
+          type: string
+        view_count:
+          type: integer
+        favorite_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    ExifData:
+      type: object
+      properties:
+        camera_make:
+          type: string
+        camera_model:
+          type: string
+        lens_model:
+          type: string
+        focal_length:
+          type: string
+        focal_length_35mm:
+          type: string
+        aperture:
+          type: string
+        shutter_speed:
+          type: string
+        iso:
+          type: integer
+        exposure_mode:
+          type: string
+        metering_mode:
+          type: string
+        white_balance:
+          type: string
+        flash:
+          type: string
+        taken_at:
+          type: string
+          format: date-time
+        gps_latitude:
+          type: number
+        gps_longitude:
+          type: number
+        image_width:
+          type: integer
+        image_height:
+          type: integer
+
+    # Category Schema
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        name_en:
+          type: string
+        description:
+          type: string
+        photo_count:
+          type: integer
+        sort_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    # Tag Schema
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        photo_count:
+          type: integer
+
+    # Ticket Schema
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [appeal, report, other]
+        title:
+          type: string
+        content:
+          type: string
+        status:
+          type: string
+          enum: [open, processing, resolved, closed]
+        photo_id:
+          type: integer
+        photo:
+          $ref: '#/components/schemas/PhotoListItem'
+        replies:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketReply'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TicketReply:
+      type: object
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserPublic'
+        created_at:
+          type: string
+          format: date-time
+
+    # Review Schema
+    ReviewItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        thumbnail_url:
+          type: string
+        status:
+          type: string
+        ai_result:
+          type: object
+          properties:
+            score:
+              type: number
+            aircraft_detected:
+              type: boolean
+            quality_score:
+              type: number
+            issues:
+              type: array
+              items:
+                type: string
+        user:
+          $ref: '#/components/schemas/UserPublic'
+        created_at:
+          type: string
+          format: date-time
+
+paths:
+  # ==================== Auth ====================
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: User Registration
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+                - confirm_password
+              properties:
+                username:
+                  type: string
+                  minLength: 4
+                  maxLength: 20
+                  description: 4-20 characters, alphanumeric and underscore
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                  maxLength: 32
+                confirm_password:
+                  type: string
+      responses:
+        '200':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          user_id:
+                            type: integer
+                          username:
+                            type: string
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: User Login
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  description: Username or email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          access_token:
+                            type: string
+                          refresh_token:
+                            type: string
+                          expires_in:
+                            type: integer
+                          token_type:
+                            type: string
+                          user:
+                            $ref: '#/components/schemas/User'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: Refresh Token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          access_token:
+                            type: string
+                          expires_in:
+                            type: integer
+
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: User Logout
+      operationId: logout
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  # ==================== Users ====================
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: Get Current User Info
+      operationId: getCurrentUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+    put:
+      tags:
+        - Users
+      summary: Update Current User Info
+      operationId: updateCurrentUser
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                bio:
+                  type: string
+                  maxLength: 200
+                location:
+                  type: string
+      responses:
+        '200':
+          description: Update successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+
+  /users/me/password:
+    put:
+      tags:
+        - Users
+      summary: Change Password
+      operationId: changePassword
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - old_password
+                - new_password
+                - confirm_password
+              properties:
+                old_password:
+                  type: string
+                new_password:
+                  type: string
+                confirm_password:
+                  type: string
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Get User Public Info
+      operationId: getUserById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UserPublic'
+
+  /users/{id}/photos:
+    get:
+      tags:
+        - Users
+      summary: Get User Photos
+      operationId: getUserPhotos
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/PhotoListItem'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+
+  # ==================== Photos ====================
+  /photos:
+    get:
+      tags:
+        - Photos
+      summary: Get Photo List
+      operationId: getPhotos
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [newest, oldest, popular]
+            default: newest
+        - name: category_id
+          in: query
+          schema:
+            type: integer
+        - name: aircraft_type
+          in: query
+          schema:
+            type: string
+        - name: airline
+          in: query
+          schema:
+            type: string
+        - name: airport
+          in: query
+          schema:
+            type: string
+        - name: registration
+          in: query
+          schema:
+            type: string
+        - name: keyword
+          in: query
+          schema:
+            type: string
+        - name: user_id
+          in: query
+          schema:
+            type: integer
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/PhotoListItem'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+    post:
+      tags:
+        - Photos
+      summary: Upload Photo
+      operationId: uploadPhoto
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - title
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Photo file (JPG/PNG/RAW)
+                raw_file:
+                  type: string
+                  format: binary
+                  description: RAW file (optional)
+                title:
+                  type: string
+                  maxLength: 100
+                description:
+                  type: string
+                  maxLength: 500
+                aircraft_type:
+                  type: string
+                airline:
+                  type: string
+                registration:
+                  type: string
+                airport:
+                  type: string
+                  description: ICAO/IATA code
+                category_id:
+                  type: integer
+                tags:
+                  type: string
+                  description: Comma separated tags
+      responses:
+        '200':
+          description: Upload successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          status:
+                            type: string
+                          title:
+                            type: string
+
+  /photos/favorites:
+    get:
+      tags:
+        - Photos
+      summary: Get My Favorites
+      operationId: getMyFavorites
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/PhotoListItem'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+
+  /photos/mine:
+    get:
+      tags:
+        - Photos
+      summary: Get My Uploads
+      operationId: getMyPhotos
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, pending, approved, rejected]
+            default: all
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/PhotoListItem'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+
+  /photos/{id}:
+    get:
+      tags:
+        - Photos
+      summary: Get Photo Detail
+      operationId: getPhotoById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Photo'
+    delete:
+      tags:
+        - Photos
+      summary: Delete Photo
+      operationId: deletePhoto
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /photos/{id}/favorite:
+    post:
+      tags:
+        - Photos
+      summary: Add to Favorites
+      operationId: addFavorite
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Added to favorites
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          favorite_count:
+                            type: integer
+    delete:
+      tags:
+        - Photos
+      summary: Remove from Favorites
+      operationId: removeFavorite
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Removed from favorites
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          favorite_count:
+                            type: integer
+
+  # ==================== Categories ====================
+  /categories:
+    get:
+      tags:
+        - Categories
+      summary: Get Category List
+      operationId: getCategories
+      parameters:
+        - name: include_empty
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Include categories with no photos
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Category'
+    post:
+      tags:
+        - Categories
+      summary: Create Category (Admin)
+      operationId: createCategory
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - name_en
+              properties:
+                name:
+                  type: string
+                name_en:
+                  type: string
+                description:
+                  type: string
+                sort_order:
+                  type: integer
+      responses:
+        '200':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Category'
+
+  /categories/{id}:
+    get:
+      tags:
+        - Categories
+      summary: Get Category Detail
+      operationId: getCategoryById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Category'
+    put:
+      tags:
+        - Categories
+      summary: Update Category (Admin)
+      operationId: updateCategory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                name_en:
+                  type: string
+                description:
+                  type: string
+                sort_order:
+                  type: integer
+      responses:
+        '200':
+          description: Category updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Category'
+    delete:
+      tags:
+        - Categories
+      summary: Delete Category (Admin)
+      operationId: deleteCategory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: move_to
+          in: query
+          schema:
+            type: integer
+          description: Move photos to target category ID
+      responses:
+        '200':
+          description: Category deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  # ==================== Tags ====================
+  /tags:
+    get:
+      tags:
+        - Tags
+      summary: Get Popular Tags
+      operationId: getTags
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Tag'
+
+  /tags/search:
+    get:
+      tags:
+        - Tags
+      summary: Search Tags
+      operationId: searchTags
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Tag'
+
+  /tags/{id}/photos:
+    get:
+      tags:
+        - Tags
+      summary: Get Photos by Tag
+      operationId: getPhotosByTag
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          tag:
+                            $ref: '#/components/schemas/Tag'
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/PhotoListItem'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+
+  # ==================== Tickets ====================
+  /tickets:
+    get:
+      tags:
+        - Tickets
+      summary: Get My Tickets
+      operationId: getMyTickets
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, open, processing, resolved, closed]
+            default: all
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Ticket'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+    post:
+      tags:
+        - Tickets
+      summary: Create Ticket
+      operationId: createTicket
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - photo_id
+                - type
+                - title
+                - content
+              properties:
+                photo_id:
+                  type: integer
+                type:
+                  type: string
+                  enum: [appeal, report, other]
+                title:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '200':
+          description: Ticket created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          status:
+                            type: string
+                          created_at:
+                            type: string
+                            format: date-time
+
+  /tickets/{id}:
+    get:
+      tags:
+        - Tickets
+      summary: Get Ticket Detail
+      operationId: getTicketById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Ticket'
+
+  /tickets/{id}/replies:
+    post:
+      tags:
+        - Tickets
+      summary: Reply to Ticket
+      operationId: replyTicket
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+      responses:
+        '200':
+          description: Reply submitted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TicketReply'
+
+  # ==================== Admin ====================
+  /admin/reviews:
+    get:
+      tags:
+        - Admin
+      summary: Get Pending Reviews
+      operationId: getPendingReviews
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, ai_passed, ai_rejected]
+            default: pending
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/ReviewItem'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+
+  /admin/reviews/{id}:
+    post:
+      tags:
+        - Admin
+      summary: Review Photo
+      operationId: reviewPhoto
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action
+              properties:
+                action:
+                  type: string
+                  enum: [approve, reject]
+                reason:
+                  type: string
+                  description: Required when action is reject
+      responses:
+        '200':
+          description: Review completed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          status:
+                            type: string
+                          reviewed_by:
+                            type: integer
+                          reviewed_at:
+                            type: string
+                            format: date-time
+
+  /admin/users:
+    get:
+      tags:
+        - Admin
+      summary: Get User List (Admin)
+      operationId: getAdminUsers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [all, user, reviewer, admin]
+            default: all
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, active, banned]
+            default: all
+        - name: keyword
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/User'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+
+  /admin/users/{id}/role:
+    put:
+      tags:
+        - Admin
+      summary: Update User Role
+      operationId: updateUserRole
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+              properties:
+                role:
+                  type: string
+                  enum: [user, reviewer, admin]
+      responses:
+        '200':
+          description: Role updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /admin/users/{id}/status:
+    put:
+      tags:
+        - Admin
+      summary: Ban/Unban User
+      operationId: updateUserStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [active, banned]
+                reason:
+                  type: string
+                  description: Required when status is banned
+      responses:
+        '200':
+          description: Operation successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /admin/photos/{id}:
+    delete:
+      tags:
+        - Admin
+      summary: Delete Photo (Admin)
+      operationId: adminDeletePhoto
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /admin/tickets:
+    get:
+      tags:
+        - Admin
+      summary: Get Tickets (Admin)
+      operationId: getAdminTickets
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, open, processing, resolved, closed]
+            default: open
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [all, appeal, report, other]
+            default: all
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Ticket'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+
+  /admin/tickets/{id}:
+    put:
+      tags:
+        - Admin
+      summary: Process Ticket (Admin)
+      operationId: processTicket
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [processing, resolved, closed]
+                reply:
+                  type: string
+      responses:
+        '200':
+          description: Processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  # ==================== System ====================
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health Check
+      operationId: healthCheck
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /system/info:
+    get:
+      tags:
+        - System
+      summary: Get System Info
+      operationId: getSystemInfo
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          version:
+                            type: string
+                          supported_formats:
+                            type: array
+                            items:
+                              type: string
+                          max_upload_size:
+                            type: integer
+                          languages:
+                            type: array
+                            items:
+                              type: string
