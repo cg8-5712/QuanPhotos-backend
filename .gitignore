@@ -29,3 +29,14 @@ go.work.sum
 
 # Editor/IDE
 .idea/
+
+# Logs
+logs/
+*.log
+
+# Uploads
+uploads/
+
+# Build output
+bin/
+build/
