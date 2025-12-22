@@ -1,11 +1,9 @@
 package handler
 
 import (
-	"net/http"
-
 	"QuanPhotos/internal/config"
 	"QuanPhotos/internal/middleware"
-	"QuanPhotos/internal/pkg/response"
+	"QuanPhotos/internal/service/system"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,6 +12,9 @@ import (
 type Router struct {
 	engine *gin.Engine
 	config *config.Config
+
+	// Handlers
+	systemHandler *SystemHandler
 }
 
 // NewRouter creates a new router instance
@@ -40,22 +41,29 @@ func NewRouter(cfg *config.Config) *Router {
 		}))
 	}
 
+	// Initialize services
+	systemService := system.NewService(cfg)
+
+	// Initialize handlers
+	systemHandler := NewSystemHandler(systemService)
+
 	return &Router{
-		engine: engine,
-		config: cfg,
+		engine:        engine,
+		config:        cfg,
+		systemHandler: systemHandler,
 	}
 }
 
 // Setup sets up all routes
 func (r *Router) Setup() {
 	// Health check endpoint
-	r.engine.GET("/health", r.healthCheck)
+	r.engine.GET("/health", r.systemHandler.Health)
 
 	// API v1 routes
 	v1 := r.engine.Group("/api/v1")
 	{
 		// System routes
-		v1.GET("/system/info", r.systemInfo)
+		v1.GET("/system/info", r.systemHandler.Info)
 
 		// Auth routes (to be implemented)
 		// auth := v1.Group("/auth")
@@ -79,24 +87,6 @@ func (r *Router) Setup() {
 		// Admin routes (to be implemented)
 		// admin := v1.Group("/admin")
 	}
-}
-
-// healthCheck handles health check requests
-func (r *Router) healthCheck(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"status":    "ok",
-		"timestamp": c.GetTime("request_time"),
-	})
-}
-
-// systemInfo handles system info requests
-func (r *Router) systemInfo(c *gin.Context) {
-	response.Success(c, gin.H{
-		"version":           "1.0.0",
-		"supported_formats": r.config.Storage.AllowedTypes,
-		"max_upload_size":   r.config.Storage.MaxSize,
-		"languages":         []string{"zh-CN", "en-US"},
-	})
 }
 
 // GetEngine returns the gin engine
