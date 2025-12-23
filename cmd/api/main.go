@@ -41,7 +41,7 @@ func main() {
 	)
 
 	// Connect to database
-	_, err = database.Connect(database.Config{
+	db, err := database.Connect(database.Config{
 		Host:            cfg.Database.Host,
 		Port:            cfg.Database.Port,
 		Name:            cfg.Database.Name,
@@ -60,7 +60,7 @@ func main() {
 
 	// Auto migrate in development environment
 	if cfg.IsDevelopment() {
-		if err := database.AutoMigrate(database.GetDB(), "file://migrations"); err != nil {
+		if err := database.AutoMigrate(db, "file://migrations"); err != nil {
 			logger.Warn("Auto migration failed", zap.Error(err))
 		} else {
 			logger.Info("Auto migration completed")
@@ -68,7 +68,7 @@ func main() {
 	}
 
 	// Setup router
-	router := handler.NewRouter(cfg)
+	router := handler.NewRouter(cfg, db)
 	router.Setup()
 
 	// Create HTTP server

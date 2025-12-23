@@ -11,6 +11,7 @@ const (
 	CodeSuccess           = 0
 	CodeInvalidParams     = 40001
 	CodeValidationFailed  = 40002
+	CodeValidationError   = 40002 // Alias for CodeValidationFailed
 	CodeUnauthorized      = 40101
 	CodeTokenExpired      = 40102
 	CodeTokenInvalid      = 40103
@@ -101,8 +102,16 @@ func SuccessWithPagination(c *gin.Context, list interface{}, page, pageSize, tot
 	})
 }
 
-// Error sends an error response
-func Error(c *gin.Context, code int) {
+// Error sends an error response with HTTP status, code, and message
+func Error(c *gin.Context, httpStatus int, code int, message string) {
+	c.JSON(httpStatus, Response{
+		Code:    code,
+		Message: message,
+	})
+}
+
+// ErrorWithCode sends an error response based on error code
+func ErrorWithCode(c *gin.Context, code int) {
 	message := errorMessages[code]
 	if message == "" {
 		message = "unknown error"
@@ -165,7 +174,7 @@ func getHTTPStatus(code int) int {
 
 // Abort sends an error response and aborts the request
 func Abort(c *gin.Context, code int) {
-	Error(c, code)
+	ErrorWithCode(c, code)
 	c.Abort()
 }
 
@@ -173,4 +182,95 @@ func Abort(c *gin.Context, code int) {
 func AbortWithMessage(c *gin.Context, code int, message string) {
 	ErrorWithMessage(c, code, message)
 	c.Abort()
+}
+
+// Convenience functions for common responses
+
+// Created sends a 201 Created response
+func Created(c *gin.Context, data interface{}) {
+	c.JSON(http.StatusCreated, Response{
+		Code:    CodeSuccess,
+		Message: "created",
+		Data:    data,
+	})
+}
+
+// BadRequest sends a 400 Bad Request response
+func BadRequest(c *gin.Context, message string) {
+	c.JSON(http.StatusBadRequest, Response{
+		Code:    CodeInvalidParams,
+		Message: message,
+	})
+}
+
+// ValidationError sends a 400 response for validation errors
+func ValidationError(c *gin.Context, message string) {
+	c.JSON(http.StatusBadRequest, Response{
+		Code:    CodeValidationFailed,
+		Message: message,
+	})
+}
+
+// Unauthorized sends a 401 Unauthorized response
+func Unauthorized(c *gin.Context, message string) {
+	c.JSON(http.StatusUnauthorized, Response{
+		Code:    CodeUnauthorized,
+		Message: message,
+	})
+}
+
+// TokenExpired sends a 401 response for expired tokens
+func TokenExpired(c *gin.Context, message string) {
+	c.JSON(http.StatusUnauthorized, Response{
+		Code:    CodeTokenExpired,
+		Message: message,
+	})
+}
+
+// TokenInvalid sends a 401 response for invalid tokens
+func TokenInvalid(c *gin.Context, message string) {
+	c.JSON(http.StatusUnauthorized, Response{
+		Code:    CodeTokenInvalid,
+		Message: message,
+	})
+}
+
+// Forbidden sends a 403 Forbidden response
+func Forbidden(c *gin.Context, message string) {
+	c.JSON(http.StatusForbidden, Response{
+		Code:    CodeForbidden,
+		Message: message,
+	})
+}
+
+// NotFound sends a 404 Not Found response
+func NotFound(c *gin.Context, message string) {
+	c.JSON(http.StatusNotFound, Response{
+		Code:    CodeNotFound,
+		Message: message,
+	})
+}
+
+// Conflict sends a 409 Conflict response
+func Conflict(c *gin.Context, message string) {
+	c.JSON(http.StatusConflict, Response{
+		Code:    CodeConflict,
+		Message: message,
+	})
+}
+
+// TooManyRequests sends a 429 Too Many Requests response
+func TooManyRequests(c *gin.Context, message string) {
+	c.JSON(http.StatusTooManyRequests, Response{
+		Code:    CodeTooManyRequests,
+		Message: message,
+	})
+}
+
+// InternalError sends a 500 Internal Server Error response
+func InternalError(c *gin.Context, message string) {
+	c.JSON(http.StatusInternalServerError, Response{
+		Code:    CodeInternalError,
+		Message: message,
+	})
 }
