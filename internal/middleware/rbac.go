@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"slices"
+
 	"github.com/gin-gonic/gin"
 
 	"QuanPhotos/internal/model"
@@ -20,11 +22,9 @@ func RequireRole(roles ...model.UserRole) gin.HandlerFunc {
 		userRole := model.UserRole(roleStr)
 
 		// Check if user has any of the required roles
-		for _, role := range roles {
-			if userRole == role {
-				c.Next()
-				return
-			}
+		if slices.Contains(roles, userRole) {
+			c.Next()
+			return
 		}
 
 		response.Forbidden(c, "Insufficient permissions")

@@ -11,9 +11,9 @@ import (
 )
 
 var (
-	ErrUsernameExists    = errors.New("username already exists")
-	ErrEmailExists       = errors.New("email already exists")
-	ErrPasswordMismatch  = errors.New("passwords do not match")
+	ErrUsernameExists   = errors.New("username already exists")
+	ErrEmailExists      = errors.New("email already exists")
+	ErrPasswordMismatch = errors.New("passwords do not match")
 )
 
 // Register creates a new user account
