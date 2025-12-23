@@ -19,6 +19,18 @@ tags:
     description: User management endpoints
   - name: Photos
     description: Photo management endpoints
+  - name: Social
+    description: Social interaction endpoints (likes, comments, shares)
+  - name: Featured
+    description: Featured photos endpoints
+  - name: Conversations
+    description: Private messaging endpoints
+  - name: Notifications
+    description: Notification endpoints
+  - name: Announcements
+    description: System announcement endpoints
+  - name: Rankings
+    description: Leaderboard endpoints
   - name: Categories
     description: Category management endpoints
   - name: Tags
@@ -27,6 +39,8 @@ tags:
     description: Ticket system endpoints
   - name: Admin
     description: Admin management endpoints
+  - name: SuperAdmin
+    description: Super admin management endpoints
   - name: System
     description: System information endpoints
 
@@ -73,7 +87,16 @@ components:
           type: string
         role:
           type: string
-          enum: [guest, user, reviewer, admin]
+          enum: [guest, user, reviewer, admin, superadmin]
+        status:
+          type: string
+          enum: [active, banned]
+        can_comment:
+          type: boolean
+        can_message:
+          type: boolean
+        can_upload:
+          type: boolean
         avatar:
           type: string
         bio:
@@ -144,8 +167,16 @@ components:
           $ref: '#/components/schemas/ExifData'
         view_count:
           type: integer
+        like_count:
+          type: integer
         favorite_count:
           type: integer
+        comment_count:
+          type: integer
+        share_count:
+          type: integer
+        is_liked:
+          type: boolean
         is_favorited:
           type: boolean
         created_at:
@@ -174,7 +205,11 @@ components:
           type: string
         view_count:
           type: integer
+        like_count:
+          type: integer
         favorite_count:
+          type: integer
+        comment_count:
           type: integer
         created_at:
           type: string
@@ -324,6 +359,216 @@ components:
                 type: string
         user:
           $ref: '#/components/schemas/UserPublic'
+        created_at:
+          type: string
+          format: date-time
+
+    # Comment Schema
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserPublic'
+        like_count:
+          type: integer
+        reply_count:
+          type: integer
+        is_liked:
+          type: boolean
+        replies:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentReply'
+        created_at:
+          type: string
+          format: date-time
+
+    CommentReply:
+      type: object
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserPublic'
+        created_at:
+          type: string
+          format: date-time
+
+    # Featured Photo Schema
+    FeaturedPhoto:
+      type: object
+      properties:
+        id:
+          type: integer
+        photo:
+          $ref: '#/components/schemas/PhotoListItem'
+        featured_reason:
+          type: string
+        featured_at:
+          type: string
+          format: date-time
+
+    # Conversation Schema
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        participant:
+          $ref: '#/components/schemas/UserPublic'
+        last_message:
+          type: object
+          properties:
+            content:
+              type: string
+            created_at:
+              type: string
+              format: date-time
+        unread_count:
+          type: integer
+        updated_at:
+          type: string
+          format: date-time
+
+    # Message Schema
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+        sender_id:
+          type: integer
+        content:
+          type: string
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    # Notification Schema
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [like, comment, reply, follow, share, featured, review, system, message]
+        title:
+          type: string
+        content:
+          type: string
+        is_read:
+          type: boolean
+        related_photo:
+          $ref: '#/components/schemas/PhotoListItem'
+        actor:
+          $ref: '#/components/schemas/UserPublic'
+        created_at:
+          type: string
+          format: date-time
+
+    # Announcement Schema
+    Announcement:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        summary:
+          type: string
+        content:
+          type: string
+        is_pinned:
+          type: boolean
+        status:
+          type: string
+          enum: [draft, published]
+        author:
+          $ref: '#/components/schemas/UserPublic'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    # Ranking Schemas
+    PhotoRankingItem:
+      type: object
+      properties:
+        rank:
+          type: integer
+        photo:
+          $ref: '#/components/schemas/PhotoListItem'
+        score:
+          type: integer
+        like_count:
+          type: integer
+        view_count:
+          type: integer
+        favorite_count:
+          type: integer
+
+    UserRankingItem:
+      type: object
+      properties:
+        rank:
+          type: integer
+        user:
+          $ref: '#/components/schemas/UserPublic'
+        score:
+          type: integer
+        photo_count:
+          type: integer
+        likes_received:
+          type: integer
+        featured_count:
+          type: integer
+
+    # Admin Permission Schema
+    AdminWithPermissions:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+
+    ReviewerWithCategories:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
         created_at:
           type: string
           format: date-time
@@ -964,6 +1209,771 @@ paths:
                         properties:
                           favorite_count:
                             type: integer
+
+  # ==================== Social Interactions ====================
+  /photos/{id}/like:
+    post:
+      tags:
+        - Social
+      summary: Like Photo
+      operationId: likePhoto
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Liked
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          like_count:
+                            type: integer
+    delete:
+      tags:
+        - Social
+      summary: Unlike Photo
+      operationId: unlikePhoto
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Unliked
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          like_count:
+                            type: integer
+
+  /photos/{id}/comments:
+    get:
+      tags:
+        - Social
+      summary: Get Photo Comments
+      operationId: getPhotoComments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [newest, oldest, popular]
+            default: newest
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Comment'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+    post:
+      tags:
+        - Social
+      summary: Post Comment
+      operationId: postComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  maxLength: 500
+                parent_id:
+                  type: integer
+                  description: Parent comment ID for replies
+      responses:
+        '200':
+          description: Comment posted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          content:
+                            type: string
+                          created_at:
+                            type: string
+                            format: date-time
+
+  /comments/{id}:
+    delete:
+      tags:
+        - Social
+      summary: Delete Comment
+      operationId: deleteComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Comment deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /comments/{id}/like:
+    post:
+      tags:
+        - Social
+      summary: Like Comment
+      operationId: likeComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Liked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /photos/{id}/share:
+    post:
+      tags:
+        - Social
+      summary: Share Photo
+      operationId: sharePhoto
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                share_type:
+                  type: string
+                  enum: [internal, external]
+                  default: internal
+      responses:
+        '200':
+          description: Shared
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          share_id:
+                            type: integer
+                          share_count:
+                            type: integer
+
+  # ==================== Featured ====================
+  /featured:
+    get:
+      tags:
+        - Featured
+      summary: Get Featured Photos
+      operationId: getFeaturedPhotos
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/FeaturedPhoto'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+
+  # ==================== Conversations ====================
+  /conversations:
+    get:
+      tags:
+        - Conversations
+      summary: Get Conversation List
+      operationId: getConversations
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Conversation'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+    post:
+      tags:
+        - Conversations
+      summary: Create Conversation / Send Message
+      operationId: createConversation
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - recipient_id
+                - content
+              properties:
+                recipient_id:
+                  type: integer
+                content:
+                  type: string
+                  maxLength: 1000
+      responses:
+        '200':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          conversation_id:
+                            type: integer
+                          message_id:
+                            type: integer
+
+  /conversations/{id}:
+    get:
+      tags:
+        - Conversations
+      summary: Get Conversation Messages
+      operationId: getConversationMessages
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: before_id
+          in: query
+          schema:
+            type: integer
+          description: Get messages before this ID
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          conversation:
+                            $ref: '#/components/schemas/Conversation'
+                          messages:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Message'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+    post:
+      tags:
+        - Conversations
+      summary: Send Message to Conversation
+      operationId: sendMessage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  maxLength: 1000
+      responses:
+        '200':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Message'
+    delete:
+      tags:
+        - Conversations
+      summary: Delete Conversation
+      operationId: deleteConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Conversation deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  # ==================== Notifications ====================
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get Notification List
+      operationId: getNotifications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [all, like, comment, follow, system]
+            default: all
+        - name: is_read
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Notification'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+
+  /notifications/unread:
+    get:
+      tags:
+        - Notifications
+      summary: Get Unread Count
+      operationId: getUnreadCount
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          by_type:
+                            type: object
+                            properties:
+                              like:
+                                type: integer
+                              comment:
+                                type: integer
+                              follow:
+                                type: integer
+                              system:
+                                type: integer
+
+  /notifications/{id}/read:
+    put:
+      tags:
+        - Notifications
+      summary: Mark as Read
+      operationId: markAsRead
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /notifications/read-all:
+    put:
+      tags:
+        - Notifications
+      summary: Mark All as Read
+      operationId: markAllAsRead
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [all, like, comment, follow, system]
+                  default: all
+      responses:
+        '200':
+          description: All marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  # ==================== Announcements ====================
+  /announcements:
+    get:
+      tags:
+        - Announcements
+      summary: Get Announcement List
+      operationId: getAnnouncements
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: is_pinned
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Announcement'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+
+  /announcements/{id}:
+    get:
+      tags:
+        - Announcements
+      summary: Get Announcement Detail
+      operationId: getAnnouncementById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Announcement'
+
+  # ==================== Rankings ====================
+  /rankings/photos:
+    get:
+      tags:
+        - Rankings
+      summary: Get Photo Rankings
+      operationId: getPhotoRankings
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [daily, weekly, monthly, all]
+            default: weekly
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [score, likes, views, favorites]
+            default: score
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          period:
+                            type: string
+                          period_start:
+                            type: string
+                            format: date-time
+                          period_end:
+                            type: string
+                            format: date-time
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/PhotoRankingItem'
+
+  /rankings/users:
+    get:
+      tags:
+        - Rankings
+      summary: Get User Rankings
+      operationId: getUserRankings
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [daily, weekly, monthly, all]
+            default: weekly
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [score, photos, likes_received]
+            default: score
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          period:
+                            type: string
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/UserRankingItem'
 
   # ==================== Categories ====================
   /categories:
@@ -1723,6 +2733,499 @@ paths:
       responses:
         '200':
           description: Processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /admin/featured:
+    post:
+      tags:
+        - Admin
+      summary: Set Featured Photo
+      operationId: setFeaturedPhoto
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - photo_id
+              properties:
+                photo_id:
+                  type: integer
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Featured successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          photo_id:
+                            type: integer
+                          featured_at:
+                            type: string
+                            format: date-time
+
+  /admin/featured/{id}:
+    delete:
+      tags:
+        - Admin
+      summary: Remove Featured Photo
+      operationId: removeFeaturedPhoto
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Unfeatured successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /admin/announcements:
+    get:
+      tags:
+        - Admin
+      summary: Get Announcements (Admin)
+      operationId: getAdminAnnouncements
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, draft, published]
+            default: all
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Announcement'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+    post:
+      tags:
+        - Admin
+      summary: Create Announcement
+      operationId: createAnnouncement
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                summary:
+                  type: string
+                is_pinned:
+                  type: boolean
+                  default: false
+                status:
+                  type: string
+                  enum: [draft, published]
+                  default: published
+      responses:
+        '200':
+          description: Announcement created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          title:
+                            type: string
+                          created_at:
+                            type: string
+                            format: date-time
+
+  /admin/announcements/{id}:
+    put:
+      tags:
+        - Admin
+      summary: Update Announcement
+      operationId: updateAnnouncement
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                summary:
+                  type: string
+                is_pinned:
+                  type: boolean
+                status:
+                  type: string
+                  enum: [draft, published]
+      responses:
+        '200':
+          description: Announcement updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+    delete:
+      tags:
+        - Admin
+      summary: Delete Announcement
+      operationId: deleteAnnouncement
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Announcement deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  # ==================== SuperAdmin ====================
+  /superadmin/admins:
+    get:
+      tags:
+        - SuperAdmin
+      summary: Get Admin List
+      operationId: getAdminList
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/AdminWithPermissions'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+
+  /superadmin/admins/{id}/permissions:
+    post:
+      tags:
+        - SuperAdmin
+      summary: Grant Admin Permissions
+      operationId: grantAdminPermissions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - permissions
+              properties:
+                permissions:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Permissions granted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+    delete:
+      tags:
+        - SuperAdmin
+      summary: Revoke Admin Permissions
+      operationId: revokeAdminPermissions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - permissions
+              properties:
+                permissions:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Permissions revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /superadmin/reviewers:
+    get:
+      tags:
+        - SuperAdmin
+      summary: Get Reviewer List
+      operationId: getReviewerList
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/ReviewerWithCategories'
+                          pagination:
+                            $ref: '#/components/schemas/Pagination'
+
+  /superadmin/reviewers/{id}/categories:
+    post:
+      tags:
+        - SuperAdmin
+      summary: Assign Reviewer Categories
+      operationId: assignReviewerCategories
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - category_ids
+              properties:
+                category_ids:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Categories assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+    delete:
+      tags:
+        - SuperAdmin
+      summary: Revoke Reviewer Categories
+      operationId: revokeReviewerCategories
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - category_ids
+              properties:
+                category_ids:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Categories revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /superadmin/users/{id}/role:
+    put:
+      tags:
+        - SuperAdmin
+      summary: Set User Role
+      operationId: setUserRole
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+              properties:
+                role:
+                  type: string
+                  enum: [user, reviewer, admin]
+      responses:
+        '200':
+          description: Role updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /superadmin/users/{id}/restrictions:
+    put:
+      tags:
+        - SuperAdmin
+      summary: Set User Restrictions
+      operationId: setUserRestrictions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                can_comment:
+                  type: boolean
+                can_message:
+                  type: boolean
+                can_upload:
+                  type: boolean
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Restrictions updated
           content:
             application/json:
               schema:

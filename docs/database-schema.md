@@ -16,21 +16,63 @@
 │ username    │   │   │ user_id(FK) │───┘   │ name        │
 │ email       │   └───│ category_id │       │ name_en     │
 │ password    │       │ title       │       └─────────────┘
-│ role        │       │ status      │
-│ ...         │       │ exif_*      │       ┌─────────────┐
-└─────────────┘       │ ...         │       │    tags     │
-                      └─────────────┘       ├─────────────┤
-                            │               │ id (PK)     │
-                            │               │ name        │
-                      ┌─────┴─────┐         └─────────────┘
-                      ▼           ▼               │
-              ┌─────────────┐ ┌─────────────┐     │
-              │ photo_tags  │ │  favorites  │     │
-              ├─────────────┤ ├─────────────┤     │
-              │ photo_id    │ │ user_id     │     │
-              │ tag_id      │─┼─────────────┼─────┘
-              └─────────────┘ │ photo_id    │
-                              └─────────────┘
+│ role        │       │ status      │             │
+│ ...         │       │ exif_*      │             │
+└─────────────┘       │ ...         │             │
+      │               └─────────────┘             │
+      │                     │                     │
+      │               ┌─────┴─────┬───────────────┤
+      │               ▼           ▼               ▼
+      │       ┌─────────────┐ ┌─────────────┐ ┌───────────────────┐
+      │       │ photo_tags  │ │  favorites  │ │ reviewer_categories│
+      │       ├─────────────┤ ├─────────────┤ ├───────────────────┤
+      │       │ photo_id    │ │ user_id     │ │ reviewer_id       │
+      │       │ tag_id      │ │ photo_id    │ │ category_id       │
+      │       └─────────────┘ └─────────────┘ └───────────────────┘
+      │               │
+      │               ▼
+      │       ┌─────────────┐       ┌─────────────┐
+      │       │    tags     │       │ photo_likes │
+      │       ├─────────────┤       ├─────────────┤
+      │       │ id (PK)     │       │ user_id     │
+      │       │ name        │       │ photo_id    │
+      │       └─────────────┘       └─────────────┘
+      │
+      │       ┌─────────────────┐   ┌─────────────────┐
+      │       │ photo_comments  │   │  comment_likes  │
+      │       ├─────────────────┤   ├─────────────────┤
+      │       │ id (PK)         │◄──│ comment_id      │
+      │       │ photo_id (FK)   │   │ user_id         │
+      │       │ user_id (FK)    │   └─────────────────┘
+      │       │ parent_id (FK)  │
+      │       │ content         │
+      │       └─────────────────┘
+      │
+      │       ┌─────────────────┐   ┌─────────────────┐
+      │       │  photo_shares   │   │ featured_photos │
+      │       ├─────────────────┤   ├─────────────────┤
+      │       │ id (PK)         │   │ id (PK)         │
+      │       │ photo_id (FK)   │   │ photo_id (FK)   │
+      │       │ user_id (FK)    │   │ admin_id (FK)   │
+      │       └─────────────────┘   └─────────────────┘
+      │
+┌─────┴─────────┐       ┌─────────────────┐
+│ conversations │       │    messages     │
+├───────────────┤       ├─────────────────┤
+│ id (PK)       │◄──────│ conversation_id │
+│ user1_id (FK) │       │ sender_id (FK)  │
+│ user2_id (FK) │       │ content         │
+└───────────────┘       └─────────────────┘
+
+┌─────────────────┐     ┌─────────────────┐
+│  notifications  │     │  announcements  │
+├─────────────────┤     ├─────────────────┤
+│ id (PK)         │     │ id (PK)         │
+│ user_id (FK)    │     │ author_id (FK)  │
+│ actor_id (FK)   │     │ title           │
+│ type            │     │ content         │
+│ content         │     │ status          │
+└─────────────────┘     └─────────────────┘
 
 ┌─────────────┐       ┌─────────────────┐
 │  tickets    │       │ ticket_replies  │
@@ -65,8 +107,11 @@
 | username | VARCHAR(50) | UNIQUE NOT NULL | 用户名 |
 | email | VARCHAR(255) | UNIQUE NOT NULL | 邮箱 |
 | password_hash | VARCHAR(255) | NOT NULL | 密码哈希 (bcrypt) |
-| role | VARCHAR(20) | NOT NULL DEFAULT 'user' | 角色: guest/user/reviewer/admin |
+| role | VARCHAR(20) | NOT NULL DEFAULT 'user' | 角色: guest/user/reviewer/admin/superadmin |
 | status | VARCHAR(20) | NOT NULL DEFAULT 'active' | 状态: active/banned |
+| can_comment | BOOLEAN | NOT NULL DEFAULT TRUE | 是否可评论 |
+| can_message | BOOLEAN | NOT NULL DEFAULT TRUE | 是否可私信 |
+| can_upload | BOOLEAN | NOT NULL DEFAULT TRUE | 是否可上传 |
 | avatar | VARCHAR(500) | | 头像 URL |
 | bio | VARCHAR(500) | | 个人简介 |
 | location | VARCHAR(100) | | 所在地 |
@@ -114,7 +159,10 @@
 | file_size | BIGINT | | 文件大小 (bytes) |
 | status | VARCHAR(20) | NOT NULL DEFAULT 'pending' | 状态 |
 | view_count | INT | NOT NULL DEFAULT 0 | 浏览次数 |
+| like_count | INT | NOT NULL DEFAULT 0 | 点赞次数 |
 | favorite_count | INT | NOT NULL DEFAULT 0 | 收藏次数 |
+| comment_count | INT | NOT NULL DEFAULT 0 | 评论次数 |
+| share_count | INT | NOT NULL DEFAULT 0 | 转发次数 |
 | **航空信息** |
 | aircraft_type | VARCHAR(100) | | 机型 |
 | airline | VARCHAR(100) | | 航空公司 |
@@ -316,6 +364,260 @@
 
 ---
 
+### 11. photo_likes - 照片点赞表
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| user_id | BIGINT | NOT NULL REFERENCES users(id) ON DELETE CASCADE | 用户 ID |
+| photo_id | BIGINT | NOT NULL REFERENCES photos(id) ON DELETE CASCADE | 照片 ID |
+| created_at | TIMESTAMP | NOT NULL DEFAULT NOW() | 点赞时间 |
+
+**约束：**
+- PRIMARY KEY (user_id, photo_id)
+
+**索引：**
+- `idx_photo_likes_photo_id` ON photo_id
+- `idx_photo_likes_created_at` ON created_at DESC
+
+---
+
+### 12. photo_comments - 照片评论表
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | BIGSERIAL | PRIMARY KEY | 评论 ID |
+| photo_id | BIGINT | NOT NULL REFERENCES photos(id) ON DELETE CASCADE | 照片 ID |
+| user_id | BIGINT | NOT NULL REFERENCES users(id) ON DELETE CASCADE | 评论者 ID |
+| parent_id | BIGINT | REFERENCES photo_comments(id) ON DELETE CASCADE | 父评论 ID（回复） |
+| content | TEXT | NOT NULL | 评论内容 |
+| like_count | INT | NOT NULL DEFAULT 0 | 点赞数 |
+| reply_count | INT | NOT NULL DEFAULT 0 | 回复数 |
+| status | VARCHAR(20) | NOT NULL DEFAULT 'visible' | 状态: visible/hidden/deleted |
+| created_at | TIMESTAMP | NOT NULL DEFAULT NOW() | 创建时间 |
+| updated_at | TIMESTAMP | NOT NULL DEFAULT NOW() | 更新时间 |
+
+**索引：**
+- `idx_photo_comments_photo_id` ON photo_id
+- `idx_photo_comments_user_id` ON user_id
+- `idx_photo_comments_parent_id` ON parent_id
+- `idx_photo_comments_created_at` ON created_at DESC
+
+---
+
+### 13. comment_likes - 评论点赞表
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| user_id | BIGINT | NOT NULL REFERENCES users(id) ON DELETE CASCADE | 用户 ID |
+| comment_id | BIGINT | NOT NULL REFERENCES photo_comments(id) ON DELETE CASCADE | 评论 ID |
+| created_at | TIMESTAMP | NOT NULL DEFAULT NOW() | 点赞时间 |
+
+**约束：**
+- PRIMARY KEY (user_id, comment_id)
+
+**索引：**
+- `idx_comment_likes_comment_id` ON comment_id
+
+---
+
+### 14. photo_shares - 照片转发表
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | BIGSERIAL | PRIMARY KEY | 转发 ID |
+| photo_id | BIGINT | NOT NULL REFERENCES photos(id) ON DELETE CASCADE | 照片 ID |
+| user_id | BIGINT | NOT NULL REFERENCES users(id) ON DELETE CASCADE | 转发者 ID |
+| content | TEXT | | 转发说明 |
+| share_type | VARCHAR(20) | NOT NULL DEFAULT 'internal' | 类型: internal/external |
+| created_at | TIMESTAMP | NOT NULL DEFAULT NOW() | 转发时间 |
+
+**索引：**
+- `idx_photo_shares_photo_id` ON photo_id
+- `idx_photo_shares_user_id` ON user_id
+- `idx_photo_shares_created_at` ON created_at DESC
+
+---
+
+### 15. featured_photos - 精选照片表
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | BIGSERIAL | PRIMARY KEY | 精选 ID |
+| photo_id | BIGINT | UNIQUE NOT NULL REFERENCES photos(id) ON DELETE CASCADE | 照片 ID |
+| admin_id | BIGINT | NOT NULL REFERENCES users(id) | 操作管理员 ID |
+| reason | VARCHAR(500) | | 入选原因 |
+| sort_order | INT | NOT NULL DEFAULT 0 | 排序顺序 |
+| featured_at | TIMESTAMP | NOT NULL DEFAULT NOW() | 入选时间 |
+| expires_at | TIMESTAMP | | 过期时间（可选） |
+
+**索引：**
+- `idx_featured_photos_sort_order` ON sort_order
+- `idx_featured_photos_featured_at` ON featured_at DESC
+
+---
+
+### 16. conversations - 私信会话表
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | BIGSERIAL | PRIMARY KEY | 会话 ID |
+| user1_id | BIGINT | NOT NULL REFERENCES users(id) ON DELETE CASCADE | 用户 1 ID |
+| user2_id | BIGINT | NOT NULL REFERENCES users(id) ON DELETE CASCADE | 用户 2 ID |
+| last_message_id | BIGINT | | 最后一条消息 ID |
+| user1_unread | INT | NOT NULL DEFAULT 0 | 用户 1 未读数 |
+| user2_unread | INT | NOT NULL DEFAULT 0 | 用户 2 未读数 |
+| user1_deleted | BOOLEAN | NOT NULL DEFAULT FALSE | 用户 1 是否删除 |
+| user2_deleted | BOOLEAN | NOT NULL DEFAULT FALSE | 用户 2 是否删除 |
+| created_at | TIMESTAMP | NOT NULL DEFAULT NOW() | 创建时间 |
+| updated_at | TIMESTAMP | NOT NULL DEFAULT NOW() | 更新时间 |
+
+**约束：**
+- UNIQUE (user1_id, user2_id) WHERE user1_id < user2_id
+
+**索引：**
+- `idx_conversations_user1_id` ON user1_id
+- `idx_conversations_user2_id` ON user2_id
+- `idx_conversations_updated_at` ON updated_at DESC
+
+---
+
+### 17. messages - 私信消息表
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | BIGSERIAL | PRIMARY KEY | 消息 ID |
+| conversation_id | BIGINT | NOT NULL REFERENCES conversations(id) ON DELETE CASCADE | 会话 ID |
+| sender_id | BIGINT | NOT NULL REFERENCES users(id) ON DELETE CASCADE | 发送者 ID |
+| content | TEXT | NOT NULL | 消息内容 |
+| is_read | BOOLEAN | NOT NULL DEFAULT FALSE | 是否已读 |
+| created_at | TIMESTAMP | NOT NULL DEFAULT NOW() | 发送时间 |
+
+**索引：**
+- `idx_messages_conversation_id` ON conversation_id
+- `idx_messages_sender_id` ON sender_id
+- `idx_messages_created_at` ON created_at DESC
+
+---
+
+### 18. notifications - 站内通知表
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | BIGSERIAL | PRIMARY KEY | 通知 ID |
+| user_id | BIGINT | NOT NULL REFERENCES users(id) ON DELETE CASCADE | 接收者 ID |
+| actor_id | BIGINT | REFERENCES users(id) ON DELETE SET NULL | 触发者 ID |
+| type | VARCHAR(20) | NOT NULL | 通知类型 |
+| title | VARCHAR(200) | NOT NULL | 通知标题 |
+| content | TEXT | | 通知内容 |
+| related_photo_id | BIGINT | REFERENCES photos(id) ON DELETE SET NULL | 关联照片 ID |
+| related_comment_id | BIGINT | REFERENCES photo_comments(id) ON DELETE SET NULL | 关联评论 ID |
+| is_read | BOOLEAN | NOT NULL DEFAULT FALSE | 是否已读 |
+| created_at | TIMESTAMP | NOT NULL DEFAULT NOW() | 创建时间 |
+
+**通知类型：**
+- `like` - 点赞通知
+- `comment` - 评论通知
+- `reply` - 回复通知
+- `follow` - 关注通知
+- `share` - 转发通知
+- `featured` - 入选精选通知
+- `review` - 审核结果通知
+- `system` - 系统通知
+- `message` - 私信通知
+
+**索引：**
+- `idx_notifications_user_id` ON user_id
+- `idx_notifications_type` ON type
+- `idx_notifications_is_read` ON is_read
+- `idx_notifications_created_at` ON created_at DESC
+
+---
+
+### 19. announcements - 系统公告表
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | BIGSERIAL | PRIMARY KEY | 公告 ID |
+| author_id | BIGINT | NOT NULL REFERENCES users(id) | 作者 ID（管理员）|
+| title | VARCHAR(200) | NOT NULL | 公告标题 |
+| summary | VARCHAR(500) | | 摘要 |
+| content | TEXT | NOT NULL | 公告内容（Markdown）|
+| status | VARCHAR(20) | NOT NULL DEFAULT 'draft' | 状态: draft/published |
+| is_pinned | BOOLEAN | NOT NULL DEFAULT FALSE | 是否置顶 |
+| published_at | TIMESTAMP | | 发布时间 |
+| created_at | TIMESTAMP | NOT NULL DEFAULT NOW() | 创建时间 |
+| updated_at | TIMESTAMP | NOT NULL DEFAULT NOW() | 更新时间 |
+
+**索引：**
+- `idx_announcements_status` ON status
+- `idx_announcements_is_pinned` ON is_pinned
+- `idx_announcements_published_at` ON published_at DESC
+
+---
+
+### 20. reviewer_categories - 审查员分类权限表
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| reviewer_id | BIGINT | NOT NULL REFERENCES users(id) ON DELETE CASCADE | 审查员用户 ID |
+| category_id | INT | NOT NULL REFERENCES categories(id) ON DELETE CASCADE | 分类 ID |
+| created_at | TIMESTAMP | NOT NULL DEFAULT NOW() | 授权时间 |
+
+**约束：**
+- PRIMARY KEY (reviewer_id, category_id)
+
+**索引：**
+- `idx_reviewer_categories_category_id` ON category_id
+
+**说明：**
+- 审查员（role='reviewer'）只能审核其被授权的分类下的照片
+- 管理员（role='admin'）可以审核所有分类的照片
+- 如果审查员没有任何分类授权，则无法审核任何照片
+
+---
+
+### 21. admin_permissions - 管理员权限表
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| admin_id | BIGINT | NOT NULL REFERENCES users(id) ON DELETE CASCADE | 管理员用户 ID |
+| permission | VARCHAR(50) | NOT NULL | 权限标识 |
+| granted_by | BIGINT | NOT NULL REFERENCES users(id) | 授权者 ID（superadmin）|
+| created_at | TIMESTAMP | NOT NULL DEFAULT NOW() | 授权时间 |
+
+**约束：**
+- PRIMARY KEY (admin_id, permission)
+
+**索引：**
+- `idx_admin_permissions_permission` ON permission
+
+**权限标识列表：**
+
+| 权限标识 | 说明 |
+|----------|------|
+| `manage_announcements` | 管理公告（创建、编辑、删除）|
+| `manage_featured` | 管理精选照片 |
+| `ban_users` | 禁用用户账号 |
+| `mute_comment` | 禁止用户评论 |
+| `mute_message` | 禁止用户私信 |
+| `mute_upload` | 禁止用户上传 |
+| `review_photos` | 审核照片 |
+| `delete_photos` | 删除违规照片 |
+| `delete_comments` | 删除违规评论 |
+| `manage_tickets` | 处理工单 |
+| `manage_categories` | 管理分类 |
+| `manage_tags` | 管理标签 |
+| `view_statistics` | 查看统计数据 |
+| `view_user_details` | 查看用户详细信息（含邮箱等）|
+
+**说明：**
+- 只有 `role='admin'` 的用户可以被分配权限
+- `role='superadmin'` 自动拥有所有权限，无需在此表中记录
+- 管理员的权限由 superadmin 授予和撤销
+- 没有任何权限的 admin 只能访问后台但无法执行任何操作
+
+---
+
 ## 触发器
 
 ### 更新 updated_at 字段
@@ -335,6 +637,9 @@ $$ language 'plpgsql';
 - categories
 - photos
 - tickets
+- photo_comments
+- conversations
+- announcements
 
 ### 更新标签计数
 
@@ -380,6 +685,87 @@ END;
 $$ language 'plpgsql';
 ```
 
+### 更新点赞计数
+
+```sql
+-- 增加照片点赞计数
+CREATE OR REPLACE FUNCTION increment_photo_like_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE photos SET like_count = like_count + 1 WHERE id = NEW.photo_id;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- 减少照片点赞计数
+CREATE OR REPLACE FUNCTION decrement_photo_like_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE photos SET like_count = like_count - 1 WHERE id = OLD.photo_id;
+    RETURN OLD;
+END;
+$$ language 'plpgsql';
+
+-- 增加评论点赞计数
+CREATE OR REPLACE FUNCTION increment_comment_like_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE photo_comments SET like_count = like_count + 1 WHERE id = NEW.comment_id;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- 减少评论点赞计数
+CREATE OR REPLACE FUNCTION decrement_comment_like_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE photo_comments SET like_count = like_count - 1 WHERE id = OLD.comment_id;
+    RETURN OLD;
+END;
+$$ language 'plpgsql';
+```
+
+### 更新评论计数
+
+```sql
+-- 增加照片评论计数
+CREATE OR REPLACE FUNCTION increment_photo_comment_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE photos SET comment_count = comment_count + 1 WHERE id = NEW.photo_id;
+    IF NEW.parent_id IS NOT NULL THEN
+        UPDATE photo_comments SET reply_count = reply_count + 1 WHERE id = NEW.parent_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- 减少照片评论计数
+CREATE OR REPLACE FUNCTION decrement_photo_comment_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE photos SET comment_count = comment_count - 1 WHERE id = OLD.photo_id;
+    IF OLD.parent_id IS NOT NULL THEN
+        UPDATE photo_comments SET reply_count = reply_count - 1 WHERE id = OLD.parent_id;
+    END IF;
+    RETURN OLD;
+END;
+$$ language 'plpgsql';
+```
+
+### 更新转发计数
+
+```sql
+-- 增加转发计数
+CREATE OR REPLACE FUNCTION increment_share_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE photos SET share_count = share_count + 1 WHERE id = NEW.photo_id;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+```
+
 ---
 
 ## 初始数据
@@ -400,8 +786,9 @@ $$ language 'plpgsql';
 ### 默认管理员
 
 ```sql
+-- 超级管理员（系统初始化时创建）
 INSERT INTO users (username, email, password_hash, role)
-VALUES ('admin', 'admin@quanphotos.com', '<bcrypt_hash>', 'admin');
+VALUES ('superadmin', 'admin@quanphotos.com', '<bcrypt_hash>', 'superadmin');
 ```
 
 ---

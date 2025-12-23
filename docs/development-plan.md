@@ -150,7 +150,47 @@ QuanPhotos 是一个专业的航空摄影社区平台，为航空爱好者提供
 
 ---
 
-### 第八阶段：安全与性能
+### 第八阶段：社交互动功能
+
+**目标**：实现用户互动和社区功能
+
+| 任务 | 描述 | 优先级 |
+|------|------|--------|
+| 点赞功能 | 用户对照片点赞，记录点赞数 | P0 |
+| 评论功能 | 用户对照片发表评论，支持回复 | P0 |
+| 转发功能 | 用户转发照片到个人主页或站外 | P1 |
+| 精选功能 | 管理员精选优质照片，首页展示 | P1 |
+| 排行榜 | 热门照片、活跃用户排行榜 | P1 |
+| 公告系统 | 管理员发布站内公告 | P1 |
+
+**交付物**：
+- 点赞、评论、转发接口
+- 精选照片管理
+- 排行榜系统
+
+---
+
+### 第九阶段：私信与站内信
+
+**目标**：实现用户间通讯功能
+
+| 任务 | 描述 | 优先级 |
+|------|------|--------|
+| 私信模型 | 私信表设计、会话管理 | P0 |
+| 发送私信 | POST /api/v1/messages 发送私信 | P0 |
+| 私信列表 | GET /api/v1/messages 获取私信会话列表 | P0 |
+| 私信详情 | GET /api/v1/messages/:id 获取会话消息 | P0 |
+| 站内信系统 | 系统通知、审核通知、互动通知 | P1 |
+| 未读计数 | 未读消息数统计 | P1 |
+| 消息设置 | 用户消息通知偏好设置 | P2 |
+
+**交付物**：
+- 私信系统
+- 站内通知系统
+
+---
+
+### 第十阶段：安全与性能
 
 **目标**：生产环境准备
 
@@ -170,7 +210,7 @@ QuanPhotos 是一个专业的航空摄影社区平台，为航空爱好者提供
 
 ---
 
-### 第九阶段：部署与运维
+### 第十一阶段：部署与运维
 
 **目标**：实现容器化部署
 
@@ -194,15 +234,26 @@ QuanPhotos 是一个专业的航空摄影社区平台，为航空爱好者提供
 ### 核心表
 
 ```
-users           - 用户表
-photos          - 照片表（含 EXIF 字段）
-photo_reviews   - 审核记录表
-tickets         - 工单表
-ticket_replies  - 工单回复表
-favorites       - 收藏表
-categories      - 分类表
-tags            - 标签表
-photo_tags      - 照片-标签关联表
+users              - 用户表
+photos             - 照片表（含 EXIF 字段）
+photo_reviews      - 审核记录表
+tickets            - 工单表
+ticket_replies     - 工单回复表
+favorites          - 收藏表
+categories         - 分类表
+tags               - 标签表
+photo_tags         - 照片-标签关联表
+photo_likes        - 照片点赞表
+photo_comments     - 照片评论表
+comment_likes      - 评论点赞表
+photo_shares       - 照片转发表
+featured_photos    - 精选照片表
+conversations      - 私信会话表
+messages           - 私信消息表
+notifications      - 站内通知表
+announcements      - 系统公告表
+reviewer_categories - 审查员分类权限表
+admin_permissions  - 管理员权限表
 ```
 
 ---
@@ -252,6 +303,66 @@ PUT    /api/v1/admin/users/:id/role   修改用户角色
 DELETE /api/v1/admin/photos/:id       删除照片
 GET    /api/v1/admin/tickets          工单管理
 PUT    /api/v1/admin/tickets/:id      处理工单
+POST   /api/v1/admin/featured         设置精选照片
+DELETE /api/v1/admin/featured/:id     取消精选
+GET    /api/v1/admin/announcements    公告管理
+POST   /api/v1/admin/announcements    创建公告
+PUT    /api/v1/admin/announcements/:id 更新公告
+DELETE /api/v1/admin/announcements/:id 删除公告
+```
+
+### 超级管理员接口
+```
+GET    /api/v1/superadmin/admins                  管理员列表
+POST   /api/v1/superadmin/admins/:id/permissions  授予管理员权限
+DELETE /api/v1/superadmin/admins/:id/permissions  撤销管理员权限
+GET    /api/v1/superadmin/reviewers               审查员列表
+POST   /api/v1/superadmin/reviewers/:id/categories 授权审查员分类
+DELETE /api/v1/superadmin/reviewers/:id/categories 撤销审查员分类
+PUT    /api/v1/superadmin/users/:id/role          设置用户角色
+PUT    /api/v1/superadmin/users/:id/restrictions  禁用用户功能
+```
+
+### 社交互动相关
+```
+POST   /api/v1/photos/:id/like        点赞照片
+DELETE /api/v1/photos/:id/like        取消点赞
+GET    /api/v1/photos/:id/comments    获取评论列表
+POST   /api/v1/photos/:id/comments    发表评论
+DELETE /api/v1/comments/:id           删除评论
+POST   /api/v1/photos/:id/share       转发照片
+GET    /api/v1/featured               获取精选照片
+```
+
+### 私信相关
+```
+GET    /api/v1/conversations          私信会话列表
+POST   /api/v1/conversations          创建会话/发送私信
+GET    /api/v1/conversations/:id      获取会话消息
+POST   /api/v1/conversations/:id      发送消息
+DELETE /api/v1/conversations/:id      删除会话
+```
+
+### 通知相关
+```
+GET    /api/v1/notifications          获取通知列表
+PUT    /api/v1/notifications/:id/read 标记已读
+PUT    /api/v1/notifications/read-all 全部标记已读
+GET    /api/v1/notifications/unread   未读数量
+```
+
+### 公告相关
+```
+GET    /api/v1/announcements          获取公告列表
+GET    /api/v1/announcements/:id      获取公告详情
+```
+
+### 排行榜相关
+```
+GET    /api/v1/rankings/photos        热门照片排行
+GET    /api/v1/rankings/users         活跃用户排行
+GET    /api/v1/rankings/weekly        周排行
+GET    /api/v1/rankings/monthly       月排行
 ```
 
 ---

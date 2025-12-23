@@ -1216,6 +1216,801 @@ Authorization: Bearer <access_token>
 
 ---
 
+## 社交互动 `/photos/:id`
+
+### 点赞照片
+
+```
+POST /photos/:id/like
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "liked",
+  "data": {
+    "like_count": 256
+  }
+}
+```
+
+---
+
+### 取消点赞
+
+```
+DELETE /photos/:id/like
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "unliked",
+  "data": {
+    "like_count": 255
+  }
+}
+```
+
+---
+
+### 获取评论列表
+
+```
+GET /photos/:id/comments
+```
+
+**查询参数**
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| page | int | 否 | 1 | 页码 |
+| page_size | int | 否 | 20 | 每页数量 |
+| sort | string | 否 | newest | 排序：newest/oldest/popular |
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "id": 1,
+        "content": "拍得真好！",
+        "user": {
+          "id": 2,
+          "username": "spotter",
+          "avatar": "https://..."
+        },
+        "like_count": 10,
+        "reply_count": 2,
+        "is_liked": false,
+        "replies": [
+          {
+            "id": 3,
+            "content": "同意！",
+            "user": {
+              "id": 3,
+              "username": "aviator2",
+              "avatar": "https://..."
+            },
+            "created_at": "2025-01-02T10:00:00Z"
+          }
+        ],
+        "created_at": "2025-01-01T12:00:00Z"
+      }
+    ],
+    "pagination": { ... }
+  }
+}
+```
+
+---
+
+### 发表评论
+
+```
+POST /photos/:id/comments
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**请求体**
+
+```json
+{
+  "content": "string",         // 评论内容（最多 500 字）
+  "parent_id": 0               // 回复的评论 ID（可选，回复评论时填写）
+}
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "comment posted",
+  "data": {
+    "id": 123,
+    "content": "拍得真好！",
+    "created_at": "2025-01-01T12:00:00Z"
+  }
+}
+```
+
+---
+
+### 删除评论
+
+```
+DELETE /comments/:id
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "comment deleted"
+}
+```
+
+**错误情况**
+- `40301` 无权限（非本人评论）
+- `40401` 评论不存在
+
+---
+
+### 点赞评论
+
+```
+POST /comments/:id/like
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "liked"
+}
+```
+
+---
+
+### 转发照片
+
+```
+POST /photos/:id/share
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**请求体**
+
+```json
+{
+  "content": "string",         // 转发说明（可选）
+  "share_type": "internal"     // 转发类型：internal（站内）/external（站外，仅记录）
+}
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "shared",
+  "data": {
+    "share_id": 789,
+    "share_count": 50
+  }
+}
+```
+
+---
+
+## 精选照片 `/featured`
+
+### 获取精选照片
+
+```
+GET /featured
+```
+
+**查询参数**
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| page | int | 否 | 1 | 页码 |
+| page_size | int | 否 | 20 | 每页数量 |
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "id": 1,
+        "photo": {
+          "id": 123,
+          "title": "Boeing 787-9 着陆",
+          "thumbnail_url": "https://...",
+          "user": { ... }
+        },
+        "featured_reason": "本周最佳构图",
+        "featured_at": "2025-01-01T00:00:00Z"
+      }
+    ],
+    "pagination": { ... }
+  }
+}
+```
+
+---
+
+## 私信相关 `/conversations`
+
+### 获取会话列表
+
+```
+GET /conversations
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**查询参数**
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| page | int | 否 | 1 | 页码 |
+| page_size | int | 否 | 20 | 每页数量 |
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "id": 1,
+        "participant": {
+          "id": 2,
+          "username": "spotter",
+          "avatar": "https://..."
+        },
+        "last_message": {
+          "content": "你好，请问这张照片...",
+          "created_at": "2025-01-01T12:00:00Z"
+        },
+        "unread_count": 2,
+        "updated_at": "2025-01-01T12:00:00Z"
+      }
+    ],
+    "pagination": { ... }
+  }
+}
+```
+
+---
+
+### 创建会话/发送私信
+
+```
+POST /conversations
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**请求体**
+
+```json
+{
+  "recipient_id": 2,           // 收件人用户 ID
+  "content": "string"          // 消息内容（最多 1000 字）
+}
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "message sent",
+  "data": {
+    "conversation_id": 1,
+    "message_id": 100
+  }
+}
+```
+
+**错误情况**
+- `40401` 用户不存在
+- `40301` 对方已拉黑你或你已被禁言
+
+---
+
+### 获取会话消息
+
+```
+GET /conversations/:id
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**查询参数**
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| page | int | 否 | 1 | 页码 |
+| page_size | int | 否 | 50 | 每页数量 |
+| before_id | int | 否 | - | 获取此消息之前的消息 |
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "conversation": {
+      "id": 1,
+      "participant": {
+        "id": 2,
+        "username": "spotter",
+        "avatar": "https://..."
+      }
+    },
+    "messages": [
+      {
+        "id": 100,
+        "sender_id": 1,
+        "content": "你好！",
+        "is_read": true,
+        "created_at": "2025-01-01T12:00:00Z"
+      },
+      {
+        "id": 101,
+        "sender_id": 2,
+        "content": "你好，有什么可以帮你的？",
+        "is_read": true,
+        "created_at": "2025-01-01T12:01:00Z"
+      }
+    ],
+    "pagination": { ... }
+  }
+}
+```
+
+---
+
+### 发送消息
+
+```
+POST /conversations/:id
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**请求体**
+
+```json
+{
+  "content": "string"          // 消息内容
+}
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "message sent",
+  "data": {
+    "id": 102,
+    "content": "好的，谢谢！",
+    "created_at": "2025-01-01T12:05:00Z"
+  }
+}
+```
+
+---
+
+### 删除会话
+
+```
+DELETE /conversations/:id
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "conversation deleted"
+}
+```
+
+---
+
+## 通知相关 `/notifications`
+
+### 获取通知列表
+
+```
+GET /notifications
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**查询参数**
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| page | int | 否 | 1 | 页码 |
+| page_size | int | 否 | 20 | 每页数量 |
+| type | string | 否 | all | 类型：all/like/comment/follow/system |
+| is_read | bool | 否 | - | 是否已读筛选 |
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "id": 1,
+        "type": "like",
+        "title": "收到新点赞",
+        "content": "spotter 点赞了你的照片「Boeing 787-9 着陆」",
+        "is_read": false,
+        "related_photo": {
+          "id": 123,
+          "title": "Boeing 787-9 着陆",
+          "thumbnail_url": "https://..."
+        },
+        "actor": {
+          "id": 2,
+          "username": "spotter",
+          "avatar": "https://..."
+        },
+        "created_at": "2025-01-01T12:00:00Z"
+      },
+      {
+        "id": 2,
+        "type": "system",
+        "title": "审核通过",
+        "content": "您的照片「Boeing 787-9 着陆」已通过审核",
+        "is_read": true,
+        "related_photo": {
+          "id": 123,
+          "title": "Boeing 787-9 着陆",
+          "thumbnail_url": "https://..."
+        },
+        "created_at": "2025-01-01T10:00:00Z"
+      }
+    ],
+    "pagination": { ... }
+  }
+}
+```
+
+---
+
+### 获取未读数量
+
+```
+GET /notifications/unread
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "total": 5,
+    "by_type": {
+      "like": 2,
+      "comment": 1,
+      "follow": 0,
+      "system": 2
+    }
+  }
+}
+```
+
+---
+
+### 标记已读
+
+```
+PUT /notifications/:id/read
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "marked as read"
+}
+```
+
+---
+
+### 全部标记已读
+
+```
+PUT /notifications/read-all
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**请求体**
+
+```json
+{
+  "type": "all"                // 可选，指定类型：all/like/comment/follow/system
+}
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "all marked as read"
+}
+```
+
+---
+
+## 公告相关 `/announcements`
+
+### 获取公告列表
+
+```
+GET /announcements
+```
+
+**查询参数**
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| page | int | 否 | 1 | 页码 |
+| page_size | int | 否 | 10 | 每页数量 |
+| is_pinned | bool | 否 | - | 是否置顶 |
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "id": 1,
+        "title": "QuanPhotos 正式上线！",
+        "summary": "欢迎各位航空摄影爱好者...",
+        "is_pinned": true,
+        "created_at": "2025-01-01T00:00:00Z"
+      }
+    ],
+    "pagination": { ... }
+  }
+}
+```
+
+---
+
+### 获取公告详情
+
+```
+GET /announcements/:id
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "id": 1,
+    "title": "QuanPhotos 正式上线！",
+    "content": "欢迎各位航空摄影爱好者加入 QuanPhotos...",
+    "is_pinned": true,
+    "author": {
+      "id": 1,
+      "username": "admin"
+    },
+    "created_at": "2025-01-01T00:00:00Z",
+    "updated_at": "2025-01-01T00:00:00Z"
+  }
+}
+```
+
+---
+
+## 排行榜 `/rankings`
+
+### 热门照片排行
+
+```
+GET /rankings/photos
+```
+
+**查询参数**
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| period | string | 否 | weekly | 周期：daily/weekly/monthly/all |
+| limit | int | 否 | 20 | 返回数量（最大 100）|
+| sort_by | string | 否 | score | 排序：score/likes/views/favorites |
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "period": "weekly",
+    "period_start": "2025-01-01T00:00:00Z",
+    "period_end": "2025-01-07T23:59:59Z",
+    "list": [
+      {
+        "rank": 1,
+        "photo": {
+          "id": 123,
+          "title": "Boeing 787-9 着陆",
+          "thumbnail_url": "https://...",
+          "user": { ... }
+        },
+        "score": 1250,
+        "like_count": 256,
+        "view_count": 5000,
+        "favorite_count": 128
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 活跃用户排行
+
+```
+GET /rankings/users
+```
+
+**查询参数**
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| period | string | 否 | weekly | 周期：daily/weekly/monthly/all |
+| limit | int | 否 | 20 | 返回数量（最大 100）|
+| sort_by | string | 否 | score | 排序：score/photos/likes_received |
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "period": "weekly",
+    "list": [
+      {
+        "rank": 1,
+        "user": {
+          "id": 1,
+          "username": "aviator",
+          "avatar": "https://..."
+        },
+        "score": 5000,
+        "photo_count": 15,
+        "likes_received": 500,
+        "featured_count": 3
+      }
+    ]
+  }
+}
+```
+
+---
+
 ## 管理接口 `/admin`
 
 > 以下接口需要管理员或超级管理员权限
@@ -1509,6 +2304,506 @@ Authorization: Bearer <access_token>
 
 ---
 
+### 设置精选照片（管理员）
+
+```
+POST /admin/featured
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**请求体**
+
+```json
+{
+  "photo_id": 123,
+  "reason": "本周最佳构图"
+}
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "featured successfully",
+  "data": {
+    "id": 1,
+    "photo_id": 123,
+    "featured_at": "2025-01-01T00:00:00Z"
+  }
+}
+```
+
+---
+
+### 取消精选（管理员）
+
+```
+DELETE /admin/featured/:id
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "unfeatured successfully"
+}
+```
+
+---
+
+### 获取公告列表（管理员）
+
+```
+GET /admin/announcements
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**查询参数**
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| page | int | 否 | 1 | 页码 |
+| page_size | int | 否 | 20 | 每页数量 |
+| status | string | 否 | all | 状态：all/draft/published |
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "id": 1,
+        "title": "QuanPhotos 正式上线！",
+        "status": "published",
+        "is_pinned": true,
+        "created_at": "2025-01-01T00:00:00Z"
+      }
+    ],
+    "pagination": { ... }
+  }
+}
+```
+
+---
+
+### 创建公告（管理员）
+
+```
+POST /admin/announcements
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**请求体**
+
+```json
+{
+  "title": "公告标题",
+  "content": "公告内容（支持 Markdown）",
+  "summary": "摘要（可选）",
+  "is_pinned": false,
+  "status": "published"         // draft/published
+}
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "announcement created",
+  "data": {
+    "id": 2,
+    "title": "公告标题",
+    "created_at": "2025-01-01T12:00:00Z"
+  }
+}
+```
+
+---
+
+### 更新公告（管理员）
+
+```
+PUT /admin/announcements/:id
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**请求体**
+
+```json
+{
+  "title": "公告标题（更新）",
+  "content": "更新后的内容",
+  "is_pinned": true,
+  "status": "published"
+}
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "announcement updated"
+}
+```
+
+---
+
+### 删除公告（管理员）
+
+```
+DELETE /admin/announcements/:id
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "announcement deleted"
+}
+```
+
+---
+
+## 超级管理员接口 `/superadmin`
+
+> 以下接口仅超级管理员（superadmin）可访问
+
+### 获取管理员列表
+
+```
+GET /superadmin/admins
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**查询参数**
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| page | int | 否 | 1 | 页码 |
+| page_size | int | 否 | 20 | 每页数量 |
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "id": 10,
+        "username": "moderator1",
+        "email": "mod1@example.com",
+        "role": "admin",
+        "permissions": [
+          "manage_announcements",
+          "ban_users",
+          "review_photos"
+        ],
+        "created_at": "2025-01-01T00:00:00Z"
+      }
+    ],
+    "pagination": { ... }
+  }
+}
+```
+
+---
+
+### 授予管理员权限
+
+```
+POST /superadmin/admins/:id/permissions
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**请求体**
+
+```json
+{
+  "permissions": [
+    "manage_announcements",
+    "ban_users",
+    "mute_comment"
+  ]
+}
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "permissions granted"
+}
+```
+
+**错误情况**
+- `40401` 用户不存在
+- `40002` 用户角色不是 admin
+
+---
+
+### 撤销管理员权限
+
+```
+DELETE /superadmin/admins/:id/permissions
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**请求体**
+
+```json
+{
+  "permissions": [
+    "ban_users"
+  ]
+}
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "permissions revoked"
+}
+```
+
+---
+
+### 获取审查员列表
+
+```
+GET /superadmin/reviewers
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "id": 20,
+        "username": "reviewer1",
+        "email": "reviewer1@example.com",
+        "role": "reviewer",
+        "categories": [
+          {
+            "id": 1,
+            "name": "民航客机"
+          },
+          {
+            "id": 2,
+            "name": "货运飞机"
+          }
+        ],
+        "created_at": "2025-01-01T00:00:00Z"
+      }
+    ],
+    "pagination": { ... }
+  }
+}
+```
+
+---
+
+### 授权审查员分类
+
+```
+POST /superadmin/reviewers/:id/categories
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**请求体**
+
+```json
+{
+  "category_ids": [1, 2, 3]
+}
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "categories assigned"
+}
+```
+
+---
+
+### 撤销审查员分类
+
+```
+DELETE /superadmin/reviewers/:id/categories
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**请求体**
+
+```json
+{
+  "category_ids": [3]
+}
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "categories revoked"
+}
+```
+
+---
+
+### 设置用户角色
+
+```
+PUT /superadmin/users/:id/role
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**请求体**
+
+```json
+{
+  "role": "admin"         // user / reviewer / admin
+}
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "role updated"
+}
+```
+
+**说明：**
+- 不能将用户设置为 superadmin
+- 降级 admin 时会自动清除其权限
+- 降级 reviewer 时会自动清除其分类授权
+
+---
+
+### 禁用用户功能
+
+```
+PUT /superadmin/users/:id/restrictions
+```
+
+**请求头**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**请求体**
+
+```json
+{
+  "can_comment": false,
+  "can_message": false,
+  "can_upload": true,
+  "reason": "违规评论"
+}
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "restrictions updated"
+}
+```
+
+---
+
 ## 系统接口 `/system`
 
 ### 健康检查
@@ -1584,8 +2879,28 @@ GET /system/info
 |----|------|
 | guest | 游客（未登录）|
 | user | 普通用户 |
-| reviewer | 审查员（可审核照片）|
-| admin | 管理员（最高权限）|
+| reviewer | 审查员（仅可审核授权分类的照片）|
+| admin | 管理员（权限由 superadmin 授予）|
+| superadmin | 超级管理员（最高权限）|
+
+### 管理员权限 `admin_permission`
+
+| 权限标识 | 说明 |
+|----------|------|
+| manage_announcements | 管理公告 |
+| manage_featured | 管理精选照片 |
+| ban_users | 禁用用户账号 |
+| mute_comment | 禁止用户评论 |
+| mute_message | 禁止用户私信 |
+| mute_upload | 禁止用户上传 |
+| review_photos | 审核照片 |
+| delete_photos | 删除违规照片 |
+| delete_comments | 删除违规评论 |
+| manage_tickets | 处理工单 |
+| manage_categories | 管理分类 |
+| manage_tags | 管理标签 |
+| view_statistics | 查看统计数据 |
+| view_user_details | 查看用户详细信息 |
 
 ### 工单状态 `ticket_status`
 
@@ -1595,6 +2910,27 @@ GET /system/info
 | processing | 处理中 |
 | resolved | 已解决 |
 | closed | 已关闭 |
+
+### 通知类型 `notification_type`
+
+| 值 | 说明 |
+|----|------|
+| like | 点赞通知 |
+| comment | 评论通知 |
+| reply | 回复通知 |
+| follow | 关注通知 |
+| share | 转发通知 |
+| featured | 入选精选通知 |
+| review | 审核结果通知 |
+| system | 系统通知 |
+| message | 私信通知 |
+
+### 公告状态 `announcement_status`
+
+| 值 | 说明 |
+|----|------|
+| draft | 草稿 |
+| published | 已发布 |
 
 ---
 
