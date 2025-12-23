@@ -1,6 +1,8 @@
 package postgresql
 
 import (
+	"context"
+
 	"github.com/jmoiron/sqlx"
 )
 
@@ -17,4 +19,9 @@ func NewBaseRepository(db *sqlx.DB) *BaseRepository {
 // DB returns the database connection
 func (r *BaseRepository) DB() *sqlx.DB {
 	return r.db
+}
+
+// BeginTx starts a new transaction
+func (r *BaseRepository) BeginTx(ctx context.Context) (*sqlx.Tx, error) {
+	return r.db.BeginTxx(ctx, nil)
 }

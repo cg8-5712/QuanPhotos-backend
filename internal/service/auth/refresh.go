@@ -50,7 +50,7 @@ func (s *Service) Refresh(ctx context.Context, req *RefreshRequest) (*TokenPair,
 	tokenValid := false
 	var matchedTokenHash string
 	for _, t := range tokens {
-		if hash.CheckPassword(req.RefreshToken, t.TokenHash) {
+		if hash.CheckToken(req.RefreshToken, t.TokenHash) {
 			tokenValid = true
 			matchedTokenHash = t.TokenHash
 			break

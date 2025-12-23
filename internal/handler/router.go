@@ -66,7 +66,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 
 	// Initialize services
 	systemService := system.NewService(cfg)
-	authService := auth.New(userRepo, tokenRepo, jwtManager)
+	authService := auth.New(db, userRepo, tokenRepo, jwtManager)
 	userSvc := userService.New(userRepo)
 
 	// Initialize handlers

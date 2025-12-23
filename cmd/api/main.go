@@ -58,12 +58,32 @@ func main() {
 	defer database.Close()
 	logger.Info("Database connected successfully")
 
-	// Auto migrate in development environment
-	if cfg.IsDevelopment() {
+	// Check if database needs migration (all environments)
+	needsMigration, err := database.NeedsMigration(db)
+	if err != nil {
+		logger.Warn("Failed to check migration status", zap.Error(err))
+	}
+
+	if needsMigration {
+		logger.Info("Database needs migration, running schema migration...")
 		if err := database.AutoMigrate(db, "file://migrations"); err != nil {
-			logger.Warn("Auto migration failed", zap.Error(err))
-		} else {
-			logger.Info("Auto migration completed")
+			logger.Fatal("Schema migration failed", zap.Error(err))
+		}
+		logger.Info("Schema migration completed")
+	}
+
+	// Run seed data only in development environment
+	if cfg.IsDevelopment() {
+		needsSeed, err := database.IsSeedNeeded(db)
+		if err != nil {
+			logger.Warn("Failed to check seed status", zap.Error(err))
+		} else if needsSeed {
+			logger.Info("Running seed data...")
+			if err := database.RunSeed(db, "migrations/seed.sql"); err != nil {
+				logger.Warn("Seed data failed", zap.Error(err))
+			} else {
+				logger.Info("Seed data completed")
+			}
 		}
 	}
 

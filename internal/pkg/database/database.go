@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -10,6 +11,11 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
+
+// readFile reads the content of a file
+func readFile(path string) ([]byte, error) {
+	return os.ReadFile(path)
+}
 
 // Config holds database configuration
 type Config struct {
@@ -66,7 +72,24 @@ func GetDB() *sqlx.DB {
 	return DB
 }
 
-// AutoMigrate runs database migrations in development environment
+// NeedsMigration checks if the database needs schema migration
+// Returns true if the users table doesn't exist (as a proxy for empty database)
+func NeedsMigration(db *sqlx.DB) (bool, error) {
+	var exists bool
+	query := `
+		SELECT EXISTS (
+			SELECT FROM information_schema.tables
+			WHERE table_schema = 'public'
+			AND table_name = 'users'
+		)
+	`
+	if err := db.Get(&exists, query); err != nil {
+		return false, fmt.Errorf("failed to check if tables exist: %w", err)
+	}
+	return !exists, nil
+}
+
+// AutoMigrate runs database migrations
 // migrationsPath should be the path to migrations directory (e.g., "file://migrations")
 func AutoMigrate(db *sqlx.DB, migrationsPath string) error {
 	driver, err := postgres.WithInstance(db.DB, &postgres.Config{})
@@ -88,4 +111,29 @@ func AutoMigrate(db *sqlx.DB, migrationsPath string) error {
 	}
 
 	return nil
+}
+
+// RunSeed executes seed data from the specified file
+func RunSeed(db *sqlx.DB, seedPath string) error {
+	// Read seed file
+	content, err := readFile(seedPath)
+	if err != nil {
+		return fmt.Errorf("failed to read seed file: %w", err)
+	}
+
+	// Execute seed SQL
+	if _, err := db.Exec(string(content)); err != nil {
+		return fmt.Errorf("failed to execute seed: %w", err)
+	}
+
+	return nil
+}
+
+// IsSeedNeeded checks if seed data is needed (no users exist)
+func IsSeedNeeded(db *sqlx.DB) (bool, error) {
+	var count int
+	if err := db.Get(&count, "SELECT COUNT(*) FROM users"); err != nil {
+		return false, fmt.Errorf("failed to check users count: %w", err)
+	}
+	return count == 0, nil
 }

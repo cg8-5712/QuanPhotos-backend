@@ -6,15 +6,23 @@ import (
 
 	"QuanPhotos/internal/model"
 	"QuanPhotos/internal/pkg/hash"
+
+	"github.com/jmoiron/sqlx"
 )
 
 var (
-	ErrUsernameExists = errors.New("username already exists")
-	ErrEmailExists    = errors.New("email already exists")
+	ErrUsernameExists    = errors.New("username already exists")
+	ErrEmailExists       = errors.New("email already exists")
+	ErrPasswordMismatch  = errors.New("passwords do not match")
 )
 
 // Register creates a new user account
 func (s *Service) Register(ctx context.Context, req *RegisterRequest) (*model.User, *TokenPair, error) {
+	// Validate password confirmation
+	if req.Password != req.ConfirmPassword {
+		return nil, nil, ErrPasswordMismatch
+	}
+
 	// Check if username exists
 	exists, err := s.userRepo.ExistsByUsername(ctx, req.Username)
 	if err != nil {
@@ -51,13 +59,26 @@ func (s *Service) Register(ctx context.Context, req *RegisterRequest) (*model.Us
 		CanUpload:    true,
 	}
 
-	if err := s.userRepo.Create(ctx, user); err != nil {
+	// Start transaction to ensure atomicity
+	tx, err := s.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer tx.Rollback()
+
+	// Create user within transaction
+	if err := s.userRepo.CreateTx(ctx, tx, user); err != nil {
 		return nil, nil, err
 	}
 
-	// Generate tokens
-	tokens, err := s.generateTokenPair(ctx, user)
+	// Generate tokens within transaction
+	tokens, err := s.generateTokenPairTx(ctx, tx, user)
 	if err != nil {
+		return nil, nil, err
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
 		return nil, nil, err
 	}
 
@@ -78,11 +99,8 @@ func (s *Service) generateTokenPair(ctx context.Context, user *model.User) (*Tok
 		return nil, err
 	}
 
-	// Hash refresh token for storage
-	tokenHash, err := hash.HashPassword(refreshToken)
-	if err != nil {
-		return nil, err
-	}
+	// Hash refresh token for storage (use SHA-256, not bcrypt - JWT tokens exceed bcrypt's 72-byte limit)
+	tokenHash := hash.HashToken(refreshToken)
 
 	// Store refresh token
 	rt := &model.RefreshToken{
@@ -92,6 +110,42 @@ func (s *Service) generateTokenPair(ctx context.Context, user *model.User) (*Tok
 	}
 
 	if err := s.tokenRepo.CreateWithCleanup(ctx, rt, 5); err != nil {
+		return nil, err
+	}
+
+	return &TokenPair{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiresAt:    expiresAt,
+		TokenType:    "Bearer",
+	}, nil
+}
+
+// generateTokenPairTx generates access and refresh tokens within a transaction
+func (s *Service) generateTokenPairTx(ctx context.Context, tx *sqlx.Tx, user *model.User) (*TokenPair, error) {
+	// Generate access token
+	accessToken, expiresAt, err := s.jwtManager.GenerateAccessToken(user.ID, user.Username, string(user.Role))
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate refresh token
+	refreshToken, refreshExpiresAt, err := s.jwtManager.GenerateRefreshToken(user.ID, user.Username, string(user.Role))
+	if err != nil {
+		return nil, err
+	}
+
+	// Hash refresh token for storage (use SHA-256, not bcrypt - JWT tokens exceed bcrypt's 72-byte limit)
+	tokenHash := hash.HashToken(refreshToken)
+
+	// Store refresh token within transaction
+	rt := &model.RefreshToken{
+		UserID:    user.ID,
+		TokenHash: tokenHash,
+		ExpiresAt: refreshExpiresAt,
+	}
+
+	if err := s.tokenRepo.CreateWithCleanupTx(ctx, tx, rt, 5); err != nil {
 		return nil, err
 	}
 

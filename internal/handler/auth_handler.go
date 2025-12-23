@@ -5,7 +5,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
+	"QuanPhotos/internal/pkg/logger"
 	"QuanPhotos/internal/pkg/response"
 	"QuanPhotos/internal/service/auth"
 )
@@ -42,6 +44,10 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	user, tokens, err := h.authService.Register(c.Request.Context(), &req)
 	if err != nil {
+		if errors.Is(err, auth.ErrPasswordMismatch) {
+			response.Error(c, http.StatusBadRequest, response.CodeValidationError, "Passwords do not match")
+			return
+		}
 		if errors.Is(err, auth.ErrUsernameExists) {
 			response.Error(c, http.StatusConflict, response.CodeValidationError, "Username already exists")
 			return
@@ -50,6 +56,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			response.Error(c, http.StatusConflict, response.CodeValidationError, "Email already exists")
 			return
 		}
+		logger.Error("Failed to register user", zap.Error(err), zap.String("username", req.Username), zap.String("email", req.Email))
 		response.InternalError(c, "Failed to register user")
 		return
 	}
@@ -88,6 +95,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			response.Error(c, http.StatusForbidden, response.CodeForbidden, "Your account has been banned")
 			return
 		}
+		logger.Error("Failed to login", zap.Error(err), zap.String("username", req.Username))
 		response.InternalError(c, "Failed to login")
 		return
 	}
@@ -126,6 +134,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 			response.Error(c, http.StatusForbidden, response.CodeForbidden, "Your account is not active")
 			return
 		}
+		logger.Error("Failed to refresh token", zap.Error(err))
 		response.InternalError(c, "Failed to refresh token")
 		return
 	}
