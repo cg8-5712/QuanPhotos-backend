@@ -201,6 +201,7 @@ QuanPhotos 是一个专业的航空摄影社区平台，为航空爱好者提供
 | 上传限制 | 文件大小、类型、频率限制 | P0 |
 | 输入校验 | 请求参数验证 | P0 |
 | SQL 注入防护 | 参数化查询检查 | P0 |
+| Access Token 撤销 | Logout 后立即失效 Access Token（需 Redis 黑名单） | P2 |
 | Redis 缓存 | 热点数据缓存（可选） | P2 |
 | 接口文档 | Swagger/OpenAPI 生成 | P1 |
 
@@ -429,6 +430,7 @@ github.com/swaggo/gin-swagger
 3. **大文件上传**：注意内存占用，考虑流式处理
 4. **并发上传**：需要限制单用户并发上传数量
 5. **存储扩展**：预留 OSS/S3 存储接口
+6. **Access Token 撤销**：当前 Logout 后 Access Token 仍然有效直到过期（Refresh Token 已正确失效）。建议缩短 Access Token 有效期，后续启用 Redis 后实现黑名单机制
 
 ---
 

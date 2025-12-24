@@ -3,12 +3,14 @@ package handler
 import (
 	"QuanPhotos/internal/config"
 	"QuanPhotos/internal/middleware"
+	"QuanPhotos/internal/model"
 	"QuanPhotos/internal/pkg/jwt"
 	"QuanPhotos/internal/repository/postgresql/token"
 	"QuanPhotos/internal/repository/postgresql/user"
+	adminService "QuanPhotos/internal/service/admin"
 	"QuanPhotos/internal/service/auth"
-	userService "QuanPhotos/internal/service/user"
 	"QuanPhotos/internal/service/system"
+	userService "QuanPhotos/internal/service/user"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -26,6 +28,7 @@ type Router struct {
 	systemHandler *SystemHandler
 	authHandler   *AuthHandler
 	userHandler   *UserHandler
+	adminHandler  *AdminHandler
 }
 
 // NewRouter creates a new router instance
@@ -68,11 +71,13 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	systemService := system.NewService(cfg)
 	authService := auth.New(db, userRepo, tokenRepo, jwtManager)
 	userSvc := userService.New(userRepo)
+	adminSvc := adminService.New(userRepo)
 
 	// Initialize handlers
 	systemHandler := NewSystemHandler(systemService)
 	authHandler := NewAuthHandler(authService)
 	userHandler := NewUserHandler(userSvc)
+	adminHandler := NewAdminHandler(adminSvc)
 
 	return &Router{
 		engine:        engine,
@@ -81,6 +86,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 		systemHandler: systemHandler,
 		authHandler:   authHandler,
 		userHandler:   userHandler,
+		adminHandler:  adminHandler,
 	}
 }
 
@@ -128,8 +134,42 @@ func (r *Router) Setup() {
 		// Tickets routes (to be implemented)
 		// tickets := v1.Group("/tickets")
 
-		// Admin routes (to be implemented)
-		// admin := v1.Group("/admin")
+		// Admin routes (require admin or superadmin role)
+		admin := v1.Group("/admin")
+		admin.Use(middleware.Auth(r.jwtManager))
+		admin.Use(middleware.RequireMinRole(model.RoleAdmin))
+		{
+			// User management
+			admin.GET("/users", r.adminHandler.ListUsers)
+			admin.PUT("/users/:id/role", r.adminHandler.UpdateUserRole)
+			admin.PUT("/users/:id/status", r.adminHandler.UpdateUserStatus)
+
+			// Reviews routes (to be implemented)
+			// admin.GET("/reviews", r.adminHandler.ListReviews)
+			// admin.POST("/reviews/:id", r.adminHandler.ReviewPhoto)
+
+			// Tickets routes (to be implemented)
+			// admin.GET("/tickets", r.adminHandler.ListTickets)
+			// admin.PUT("/tickets/:id", r.adminHandler.ProcessTicket)
+
+			// Featured routes (to be implemented)
+			// admin.POST("/featured", r.adminHandler.CreateFeatured)
+			// admin.DELETE("/featured/:id", r.adminHandler.DeleteFeatured)
+
+			// Announcements routes (to be implemented)
+			// admin.GET("/announcements", r.adminHandler.ListAnnouncements)
+			// admin.POST("/announcements", r.adminHandler.CreateAnnouncement)
+			// admin.PUT("/announcements/:id", r.adminHandler.UpdateAnnouncement)
+			// admin.DELETE("/announcements/:id", r.adminHandler.DeleteAnnouncement)
+
+			// Photos routes (to be implemented)
+			// admin.DELETE("/photos/:id", r.adminHandler.DeletePhoto)
+		}
+
+		// Superadmin routes (to be implemented)
+		// superadmin := v1.Group("/superadmin")
+		// superadmin.Use(middleware.Auth(r.jwtManager))
+		// superadmin.Use(middleware.RequireSuperAdmin())
 	}
 }
 
