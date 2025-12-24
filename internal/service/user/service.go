@@ -78,8 +78,9 @@ func (s *Service) UpdateProfile(ctx context.Context, userID int64, req *UpdatePr
 
 // ChangePasswordRequest represents password change request
 type ChangePasswordRequest struct {
-	CurrentPassword string `json:"current_password" binding:"required"`
+	OldPassword     string `json:"old_password" binding:"required"`
 	NewPassword     string `json:"new_password" binding:"required,min=8,max=72"`
+	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=NewPassword"`
 }
 
 // ChangePassword changes user's password
@@ -94,7 +95,7 @@ func (s *Service) ChangePassword(ctx context.Context, userID int64, req *ChangeP
 	}
 
 	// Verify current password
-	if !hash.CheckPassword(req.CurrentPassword, user.PasswordHash) {
+	if !hash.CheckPassword(req.OldPassword, user.PasswordHash) {
 		return ErrInvalidPassword
 	}
 
