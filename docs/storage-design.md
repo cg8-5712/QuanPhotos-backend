@@ -23,7 +23,7 @@ uploads/
 │               ├── {uuid}.cr3
 │               └── {uuid}.nef
 ├── thumbnails/                # 缩略图
-│   └── {year}/
+│   └── {year}/-0=
 │       └── {month}/
 │           └── {day}/
 │               ├── {uuid}_sm.jpg    # 小图
