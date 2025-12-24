@@ -5,10 +5,12 @@ import (
 	"QuanPhotos/internal/middleware"
 	"QuanPhotos/internal/model"
 	"QuanPhotos/internal/pkg/jwt"
+	"QuanPhotos/internal/repository/postgresql/photo"
 	"QuanPhotos/internal/repository/postgresql/token"
 	"QuanPhotos/internal/repository/postgresql/user"
 	adminService "QuanPhotos/internal/service/admin"
 	"QuanPhotos/internal/service/auth"
+	photoService "QuanPhotos/internal/service/photo"
 	"QuanPhotos/internal/service/system"
 	userService "QuanPhotos/internal/service/user"
 
@@ -29,6 +31,7 @@ type Router struct {
 	authHandler   *AuthHandler
 	userHandler   *UserHandler
 	adminHandler  *AdminHandler
+	photoHandler  *PhotoHandler
 }
 
 // NewRouter creates a new router instance
@@ -66,18 +69,21 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	// Initialize repositories
 	userRepo := user.NewUserRepository(db)
 	tokenRepo := token.NewTokenRepository(db)
+	photoRepo := photo.NewPhotoRepository(db)
 
 	// Initialize services
 	systemService := system.NewService(cfg)
 	authService := auth.New(db, userRepo, tokenRepo, jwtManager)
 	userSvc := userService.New(userRepo)
 	adminSvc := adminService.New(userRepo)
+	photoSvc := photoService.New(photoRepo, cfg.Storage.BaseURL)
 
 	// Initialize handlers
 	systemHandler := NewSystemHandler(systemService)
 	authHandler := NewAuthHandler(authService)
 	userHandler := NewUserHandler(userSvc)
 	adminHandler := NewAdminHandler(adminSvc)
+	photoHandler := NewPhotoHandler(photoSvc)
 
 	return &Router{
 		engine:        engine,
@@ -87,6 +93,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 		authHandler:   authHandler,
 		userHandler:   userHandler,
 		adminHandler:  adminHandler,
+		photoHandler:  photoHandler,
 	}
 }
 
@@ -115,6 +122,7 @@ func (r *Router) Setup() {
 		{
 			// Public routes
 			users.GET("/:id", r.userHandler.GetUser)
+			users.GET("/:id/photos", r.photoHandler.ListUserPhotos)
 
 			// Protected routes (require authentication)
 			users.GET("/me", middleware.Auth(r.jwtManager), r.userHandler.GetCurrentUser)
@@ -122,8 +130,22 @@ func (r *Router) Setup() {
 			users.PUT("/me/password", middleware.Auth(r.jwtManager), r.userHandler.ChangePassword)
 		}
 
-		// Photos routes (to be implemented)
-		// photos := v1.Group("/photos")
+		// Photos routes
+		photos := v1.Group("/photos")
+		{
+			// Public routes
+			photos.GET("", r.photoHandler.List)
+			photos.GET("/:id", middleware.OptionalAuth(r.jwtManager), r.photoHandler.GetDetail)
+
+			// Protected routes (require authentication)
+			photos.GET("/mine", middleware.Auth(r.jwtManager), r.photoHandler.ListMine)
+			photos.GET("/favorites", middleware.Auth(r.jwtManager), r.photoHandler.ListFavorites)
+			photos.POST("/:id/favorite", middleware.Auth(r.jwtManager), r.photoHandler.AddFavorite)
+			photos.DELETE("/:id/favorite", middleware.Auth(r.jwtManager), r.photoHandler.RemoveFavorite)
+			photos.POST("/:id/like", middleware.Auth(r.jwtManager), r.photoHandler.AddLike)
+			photos.DELETE("/:id/like", middleware.Auth(r.jwtManager), r.photoHandler.RemoveLike)
+			photos.DELETE("/:id", middleware.Auth(r.jwtManager), r.photoHandler.Delete)
+		}
 
 		// Categories routes (to be implemented)
 		// categories := v1.Group("/categories")

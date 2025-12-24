@@ -62,6 +62,7 @@ type JWTConfig struct {
 type StorageConfig struct {
 	Type         string
 	Path         string
+	BaseURL      string
 	MaxSize      int64
 	AllowedTypes []string
 }
@@ -129,6 +130,7 @@ func Load() (*Config, error) {
 		Storage: StorageConfig{
 			Type:         getEnv("STORAGE_TYPE", "local"),
 			Path:         getEnv("STORAGE_PATH", "./uploads"),
+			BaseURL:      getEnv("STORAGE_BASE_URL", ""),
 			MaxSize:      getEnvInt64("STORAGE_MAX_SIZE", 52428800),
 			AllowedTypes: getEnvSlice("STORAGE_ALLOWED_TYPES", []string{"jpg", "jpeg", "png"}),
 		},
