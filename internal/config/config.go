@@ -16,6 +16,7 @@ type Config struct {
 	Database DatabaseConfig
 	JWT      JWTConfig
 	Storage  StorageConfig
+	Image    ImageConfig
 	AI       AIConfig
 	CORS     CORSConfig
 	Rate     RateConfig
@@ -65,6 +66,21 @@ type StorageConfig struct {
 	BaseURL      string
 	MaxSize      int64
 	AllowedTypes []string
+}
+
+// ImageConfig holds image processing configuration
+type ImageConfig struct {
+	MaxDimension    int
+	Quality         int
+	ThumbSmWidth    int
+	ThumbSmHeight   int
+	ThumbSmQuality  int
+	ThumbMdWidth    int
+	ThumbMdHeight   int
+	ThumbMdQuality  int
+	ThumbLgWidth    int
+	ThumbLgHeight   int
+	ThumbLgQuality  int
 }
 
 // AIConfig holds AI service configuration
@@ -133,6 +149,19 @@ func Load() (*Config, error) {
 			BaseURL:      getEnv("STORAGE_BASE_URL", ""),
 			MaxSize:      getEnvInt64("STORAGE_MAX_SIZE", 52428800),
 			AllowedTypes: getEnvSlice("STORAGE_ALLOWED_TYPES", []string{"jpg", "jpeg", "png"}),
+		},
+		Image: ImageConfig{
+			MaxDimension:   getEnvInt("IMAGE_MAX_DIMENSION", 4096),
+			Quality:        getEnvInt("IMAGE_QUALITY", 92),
+			ThumbSmWidth:   getEnvInt("THUMB_SM_WIDTH", 300),
+			ThumbSmHeight:  getEnvInt("THUMB_SM_HEIGHT", 200),
+			ThumbSmQuality: getEnvInt("THUMB_SM_QUALITY", 80),
+			ThumbMdWidth:   getEnvInt("THUMB_MD_WIDTH", 800),
+			ThumbMdHeight:  getEnvInt("THUMB_MD_HEIGHT", 533),
+			ThumbMdQuality: getEnvInt("THUMB_MD_QUALITY", 85),
+			ThumbLgWidth:   getEnvInt("THUMB_LG_WIDTH", 1600),
+			ThumbLgHeight:  getEnvInt("THUMB_LG_HEIGHT", 1067),
+			ThumbLgQuality: getEnvInt("THUMB_LG_QUALITY", 90),
 		},
 		AI: AIConfig{
 			ServiceURL: getEnv("AI_SERVICE_URL", "http://localhost:8000"),

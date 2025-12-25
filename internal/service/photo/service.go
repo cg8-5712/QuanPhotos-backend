@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 
+	"QuanPhotos/internal/config"
 	"QuanPhotos/internal/model"
+	"QuanPhotos/internal/pkg/storage"
 	"QuanPhotos/internal/repository/postgresql"
 	"QuanPhotos/internal/repository/postgresql/photo"
 )
@@ -19,6 +21,7 @@ var (
 // Service handles photo business logic
 type Service struct {
 	photoRepo *photo.PhotoRepository
+	uploader  *Uploader
 	baseURL   string
 }
 
@@ -28,6 +31,23 @@ func New(photoRepo *photo.PhotoRepository, baseURL string) *Service {
 		photoRepo: photoRepo,
 		baseURL:   baseURL,
 	}
+}
+
+// NewWithUploader creates a new photo service with uploader support
+func NewWithUploader(photoRepo *photo.PhotoRepository, localStorage *storage.LocalStorage, cfg *config.Config) *Service {
+	return &Service{
+		photoRepo: photoRepo,
+		uploader:  NewUploader(localStorage, photoRepo, cfg),
+		baseURL:   cfg.Storage.BaseURL,
+	}
+}
+
+// Upload uploads a new photo
+func (s *Service) Upload(ctx context.Context, req *UploadRequest) (*UploadResponse, error) {
+	if s.uploader == nil {
+		return nil, errors.New("uploader not initialized")
+	}
+	return s.uploader.Upload(ctx, req)
 }
 
 // ListRequest represents request for listing photos
@@ -126,6 +146,15 @@ func (s *Service) GetDetail(ctx context.Context, photoID int64, currentUserID *i
 			return nil, ErrPhotoNotFound
 		}
 		return nil, err
+	}
+
+	// Check access permission based on photo status
+	// Only approved photos are publicly visible
+	// Owner can see their own photos regardless of status
+	if p.Status != model.PhotoStatusApproved {
+		if currentUserID == nil || *currentUserID != p.UserID {
+			return nil, ErrPhotoNotFound // Hide non-approved photos from non-owners
+		}
 	}
 
 	// Increment view count

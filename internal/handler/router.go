@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"log"
+
 	"QuanPhotos/internal/config"
 	"QuanPhotos/internal/middleware"
 	"QuanPhotos/internal/model"
 	"QuanPhotos/internal/pkg/jwt"
+	"QuanPhotos/internal/pkg/storage"
 	"QuanPhotos/internal/repository/postgresql/photo"
 	"QuanPhotos/internal/repository/postgresql/token"
 	"QuanPhotos/internal/repository/postgresql/user"
@@ -71,19 +74,32 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	tokenRepo := token.NewTokenRepository(db)
 	photoRepo := photo.NewPhotoRepository(db)
 
+	// Initialize local storage
+	localStorage, err := storage.NewLocalStorage(cfg.Storage.Path, cfg.Storage.BaseURL)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize local storage: %v", err)
+	}
+
 	// Initialize services
 	systemService := system.NewService(cfg)
 	authService := auth.New(db, userRepo, tokenRepo, jwtManager)
 	userSvc := userService.New(userRepo)
 	adminSvc := adminService.New(userRepo)
-	photoSvc := photoService.New(photoRepo, cfg.Storage.BaseURL)
+
+	// Initialize photo service with uploader if storage is available
+	var photoSvc *photoService.Service
+	if localStorage != nil {
+		photoSvc = photoService.NewWithUploader(photoRepo, localStorage, cfg)
+	} else {
+		photoSvc = photoService.New(photoRepo, cfg.Storage.BaseURL)
+	}
 
 	// Initialize handlers
 	systemHandler := NewSystemHandler(systemService)
 	authHandler := NewAuthHandler(authService)
 	userHandler := NewUserHandler(userSvc)
 	adminHandler := NewAdminHandler(adminSvc)
-	photoHandler := NewPhotoHandler(photoSvc)
+	photoHandler := NewPhotoHandler(photoSvc, cfg.Storage.MaxSize)
 
 	return &Router{
 		engine:        engine,
@@ -101,6 +117,9 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 func (r *Router) Setup() {
 	// Health check endpoint
 	r.engine.GET("/health", r.systemHandler.Health)
+
+	// Static file serving for uploads
+	r.engine.Static("/uploads", r.config.Storage.Path)
 
 	// API v1 routes
 	v1 := r.engine.Group("/api/v1")
@@ -138,6 +157,7 @@ func (r *Router) Setup() {
 			photos.GET("/:id", middleware.OptionalAuth(r.jwtManager), r.photoHandler.GetDetail)
 
 			// Protected routes (require authentication)
+			photos.POST("", middleware.Auth(r.jwtManager), r.photoHandler.Upload)
 			photos.GET("/mine", middleware.Auth(r.jwtManager), r.photoHandler.ListMine)
 			photos.GET("/favorites", middleware.Auth(r.jwtManager), r.photoHandler.ListFavorites)
 			photos.POST("/:id/favorite", middleware.Auth(r.jwtManager), r.photoHandler.AddFavorite)

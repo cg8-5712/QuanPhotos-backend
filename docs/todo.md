@@ -12,7 +12,7 @@
 |------|------|------|
 | 第一阶段 | 基础架构搭建 | ✅ 完成 |
 | 第二阶段 | 用户系统 | ✅ 完成 |
-| 第三阶段 | 照片管理核心 | 🔴 未开始 |
+| 第三阶段 | 照片管理核心 | ✅ 完成 |
 | 第四阶段 | AI 审核集成 | 🔴 未开始 |
 | 第五阶段 | 工单系统 | 🔴 未开始 |
 | 第六阶段 | 管理后台接口 | 🟡 部分完成 |
@@ -26,41 +26,41 @@
 
 ## 第三阶段：照片管理核心
 
-> 数据库表已创建，业务逻辑待实现
+> ✅ 已完成
 
 ### 存储服务 `internal/pkg/storage/`
 
-- [ ] **P0** 实现 `Storage` 接口定义
-- [ ] **P0** 实现 `LocalStorage` 本地文件存储
-- [ ] **P1** 文件上传到临时目录
-- [ ] **P1** 文件移动到正式目录（按日期组织）
-- [ ] **P1** 文件删除功能
-- [ ] **P2** 预留 OSS/S3 云存储接口
+- [x] **P0** 实现 `Storage` 接口定义
+- [x] **P0** 实现 `LocalStorage` 本地文件存储
+- [x] **P1** 文件上传到临时目录
+- [x] **P1** 文件移动到正式目录（按日期组织）
+- [x] **P1** 文件删除功能
+- [x] **P2** 预留 OSS/S3 云存储接口
 
 ### EXIF 解析 `internal/pkg/exif/`
 
-- [ ] **P0** 集成 `goexif` 或 `go-exif` 库
-- [ ] **P0** 解析相机信息（Make, Model, SerialNumber）
-- [ ] **P0** 解析镜头信息（LensModel, FocalLength）
-- [ ] **P0** 解析拍摄参数（Aperture, ShutterSpeed, ISO）
-- [ ] **P1** 解析 GPS 坐标
-- [ ] **P1** 解析拍摄时间
+- [x] **P0** 集成 `goexif` 或 `go-exif` 库
+- [x] **P0** 解析相机信息（Make, Model, SerialNumber）
+- [x] **P0** 解析镜头信息（LensModel, FocalLength）
+- [x] **P0** 解析拍摄参数（Aperture, ShutterSpeed, ISO）
+- [x] **P1** 解析 GPS 坐标
+- [x] **P1** 解析拍摄时间
 
 ### 图像处理
 
-- [ ] **P0** 集成 `imaging` 库
-- [ ] **P0** 图像方向校正（根据 EXIF Orientation）
-- [ ] **P1** 生成缩略图 (sm: 300x200, md: 800x533, lg: 1600x1067)
-- [ ] **P1** 原图尺寸压缩（最大 4096px）
+- [x] **P0** 集成 `imaging` 库
+- [x] **P0** 图像方向校正（根据 EXIF Orientation）
+- [x] **P1** 生成缩略图 (sm: 300x200, md: 800x533, lg: 1600x1067)
+- [x] **P1** 原图尺寸压缩（最大 4096px）
 - [ ] **P2** 渐进式 JPEG 输出
 
 ### 照片上传接口
 
-- [ ] **P0** `POST /api/v1/photos` 上传接口实现
-- [ ] **P0** 文件格式验证（JPG/PNG）
-- [ ] **P0** 文件大小限制（50MB）
+- [x] **P0** `POST /api/v1/photos` 上传接口实现
+- [x] **P0** 文件格式验证（JPG/PNG）
+- [x] **P0** 文件大小限制（50MB）
 - [ ] **P1** 上传频率限制
-- [ ] **P2** RAW 格式支持 (CR2, CR3, NEF, ARW, RAF, ORF, RW2, DNG)
+- [x] **P2** RAW 格式支持 (CR2, CR3, NEF, ARW, RAF, ORF, RW2, DNG)
 - [ ] **P2** RAW + JPG 配对上传验证
 
 ---

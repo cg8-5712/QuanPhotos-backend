@@ -10,19 +10,117 @@ import (
 	"QuanPhotos/internal/middleware"
 	"QuanPhotos/internal/model"
 	"QuanPhotos/internal/pkg/response"
+	"QuanPhotos/internal/pkg/storage"
 	"QuanPhotos/internal/service/photo"
 )
 
 // PhotoHandler handles photo HTTP requests
 type PhotoHandler struct {
-	photoService *photo.Service
+	photoService  *photo.Service
+	maxUploadSize int64
 }
 
 // NewPhotoHandler creates a new photo handler
-func NewPhotoHandler(photoService *photo.Service) *PhotoHandler {
+func NewPhotoHandler(photoService *photo.Service, maxUploadSize int64) *PhotoHandler {
 	return &PhotoHandler{
-		photoService: photoService,
+		photoService:  photoService,
+		maxUploadSize: maxUploadSize,
 	}
+}
+
+// Upload uploads a new photo
+// @Summary Upload photo
+// @Description Upload a new photo with metadata
+// @Tags Photos
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param file formData file true "Photo file (JPG/PNG)"
+// @Param raw_file formData file false "RAW file (optional)"
+// @Param title formData string true "Photo title" maxLength(100)
+// @Param description formData string false "Photo description" maxLength(500)
+// @Param aircraft_type formData string false "Aircraft type"
+// @Param airline formData string false "Airline"
+// @Param registration formData string false "Aircraft registration"
+// @Param airport formData string false "Airport (ICAO/IATA)"
+// @Param category_id formData int false "Category ID"
+// @Param tags formData string false "Tags (comma-separated)"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 401 {object} response.Response
+// @Router /api/v1/photos [post]
+func (h *PhotoHandler) Upload(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	// Get file
+	file, err := c.FormFile("file")
+	if err != nil {
+		response.BadRequest(c, "No file provided")
+		return
+	}
+
+	// Early validation: check file size at handler level (fast fail)
+	if file.Size > h.maxUploadSize {
+		response.Error(c, http.StatusRequestEntityTooLarge, response.CodeValidationError, "File too large")
+		return
+	}
+
+	// Get optional raw file
+	rawFile, _ := c.FormFile("raw_file")
+
+	// Get title (required)
+	title := c.PostForm("title")
+	if title == "" {
+		response.BadRequest(c, "Title is required")
+		return
+	}
+	if len(title) > 100 {
+		response.BadRequest(c, "Title must be less than 100 characters")
+		return
+	}
+
+	// Get other optional fields
+	description := c.PostForm("description")
+	if len(description) > 500 {
+		response.BadRequest(c, "Description must be less than 500 characters")
+		return
+	}
+
+	categoryID, _ := strconv.ParseInt(c.PostForm("category_id"), 10, 32)
+
+	req := &photo.UploadRequest{
+		UserID:       userID,
+		File:         file,
+		RawFile:      rawFile,
+		Title:        title,
+		Description:  description,
+		AircraftType: c.PostForm("aircraft_type"),
+		Airline:      c.PostForm("airline"),
+		Registration: c.PostForm("registration"),
+		Airport:      c.PostForm("airport"),
+		CategoryID:   int32(categoryID),
+		Tags:         c.PostForm("tags"),
+	}
+
+	result, err := h.photoService.Upload(c.Request.Context(), req)
+	if err != nil {
+		if errors.Is(err, storage.ErrFileTooLarge) {
+			response.Error(c, http.StatusRequestEntityTooLarge, response.CodeValidationError, "File too large")
+			return
+		}
+		if errors.Is(err, storage.ErrInvalidFileType) {
+			response.BadRequest(c, "Invalid file type. Only JPG and PNG are allowed")
+			return
+		}
+		response.InternalError(c, "Failed to upload photo")
+		return
+	}
+
+	response.Success(c, result)
 }
 
 // List lists photos with pagination and filters
