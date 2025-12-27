@@ -24,28 +24,28 @@ SELECT setval('categories_id_seq', (SELECT MAX(id) FROM categories));
 -- ============================================
 
 -- 密码: password123
--- bcrypt hash: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
+-- bcrypt hash: $2a$10$/gWvC4RDii71wG.kHY08AOMqgAP9JACZP4bVTlUab0RQX/WQDrYve
 
 INSERT INTO users (username, email, password_hash, role, status, can_comment, can_message, can_upload, avatar, bio, location) VALUES
 -- 超级管理员
-('superadmin', 'superadmin@quanphotos.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'superadmin', 'active', TRUE, TRUE, TRUE, NULL, '系统超级管理员', '北京'),
+('superadmin', 'superadmin@quanphotos.com', '$2a$10$/gWvC4RDii71wG.kHY08AOMqgAP9JACZP4bVTlUab0RQX/WQDrYve', 'superadmin', 'active', TRUE, TRUE, TRUE, NULL, '系统超级管理员', '北京'),
 
 -- 管理员
-('admin', 'admin@quanphotos.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'admin', 'active', TRUE, TRUE, TRUE, NULL, '系统管理员', '北京'),
+('admin', 'admin@quanphotos.com', '$2a$10$/gWvC4RDii71wG.kHY08AOMqgAP9JACZP4bVTlUab0RQX/WQDrYve', 'admin', 'active', TRUE, TRUE, TRUE, NULL, '系统管理员', '北京'),
 
 -- 审查员
-('reviewer01', 'reviewer01@quanphotos.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'reviewer', 'active', TRUE, TRUE, TRUE, NULL, '照片审核员', '上海'),
-('reviewer02', 'reviewer02@quanphotos.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'reviewer', 'active', TRUE, TRUE, TRUE, NULL, '照片审核员', '广州'),
+('reviewer01', 'reviewer01@quanphotos.com', '$2a$10$/gWvC4RDii71wG.kHY08AOMqgAP9JACZP4bVTlUab0RQX/WQDrYve', 'reviewer', 'active', TRUE, TRUE, TRUE, NULL, '照片审核员', '上海'),
+('reviewer02', 'reviewer02@quanphotos.com', '$2a$10$/gWvC4RDii71wG.kHY08AOMqgAP9JACZP4bVTlUab0RQX/WQDrYve', 'reviewer', 'active', TRUE, TRUE, TRUE, NULL, '照片审核员', '广州'),
 
 -- 普通用户
-('aviator', 'aviator@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'user', 'active', TRUE, TRUE, TRUE, NULL, '航空摄影爱好者，常驻首都机场', '北京'),
-('skywalker', 'skywalker@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'user', 'active', TRUE, TRUE, TRUE, NULL, '飞机迷，喜欢拍摄各种机型', '上海'),
-('planespotter', 'planespotter@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'user', 'active', TRUE, TRUE, TRUE, NULL, '专业航空摄影师', '深圳'),
-('jetfan', 'jetfan@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'user', 'active', TRUE, TRUE, TRUE, NULL, '波音爱好者', '成都'),
-('airbus_lover', 'airbus@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'user', 'active', TRUE, TRUE, TRUE, NULL, '空客粉丝', '杭州'),
+('aviator', 'aviator@example.com', '$2a$10$/gWvC4RDii71wG.kHY08AOMqgAP9JACZP4bVTlUab0RQX/WQDrYve', 'user', 'active', TRUE, TRUE, TRUE, NULL, '航空摄影爱好者，常驻首都机场', '北京'),
+('skywalker', 'skywalker@example.com', '$2a$10$/gWvC4RDii71wG.kHY08AOMqgAP9JACZP4bVTlUab0RQX/WQDrYve', 'user', 'active', TRUE, TRUE, TRUE, NULL, '飞机迷，喜欢拍摄各种机型', '上海'),
+('planespotter', 'planespotter@example.com', '$2a$10$/gWvC4RDii71wG.kHY08AOMqgAP9JACZP4bVTlUab0RQX/WQDrYve', 'user', 'active', TRUE, TRUE, TRUE, NULL, '专业航空摄影师', '深圳'),
+('jetfan', 'jetfan@example.com', '$2a$10$/gWvC4RDii71wG.kHY08AOMqgAP9JACZP4bVTlUab0RQX/WQDrYve', 'user', 'active', TRUE, TRUE, TRUE, NULL, '波音爱好者', '成都'),
+('airbus_lover', 'airbus@example.com', '$2a$10$/gWvC4RDii71wG.kHY08AOMqgAP9JACZP4bVTlUab0RQX/WQDrYve', 'user', 'active', TRUE, TRUE, TRUE, NULL, '空客粉丝', '杭州'),
 
 -- 被封禁用户
-('banned_user', 'banned@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'user', 'banned', FALSE, FALSE, FALSE, NULL, '违规用户', '未知');
+('banned_user', 'banned@example.com', '$2a$10$/gWvC4RDii71wG.kHY08AOMqgAP9JACZP4bVTlUab0RQX/WQDrYve', 'user', 'banned', FALSE, FALSE, FALSE, NULL, '违规用户', '未知');
 
 -- ============================================
 -- 审查员分类权限
