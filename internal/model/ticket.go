@@ -9,9 +9,11 @@ import (
 type TicketType string
 
 const (
-	TicketTypeAppeal TicketType = "appeal" // 申诉
-	TicketTypeReport TicketType = "report" // 举报
-	TicketTypeOther  TicketType = "other"  // 其他
+	TicketTypeAppeal   TicketType = "appeal"   // 申诉
+	TicketTypeReport   TicketType = "report"   // 举报
+	TicketTypeBug      TicketType = "bug"      // Bug反馈
+	TicketTypeFeedback TicketType = "feedback" // 功能建议
+	TicketTypeOther    TicketType = "other"    // 其他
 )
 
 // TicketStatus represents the status of a ticket
@@ -59,15 +61,15 @@ type TicketListItem struct {
 
 // TicketDetail represents detailed ticket information
 type TicketDetail struct {
-	ID        int64               `json:"id"`
-	Type      TicketType          `json:"type"`
-	Title     string              `json:"title"`
-	Content   string              `json:"content"`
-	Status    TicketStatus        `json:"status"`
-	Photo     *TicketPhotoBrief   `json:"photo,omitempty"`
-	Replies   []*TicketReplyItem  `json:"replies"`
-	CreatedAt string              `json:"created_at"`
-	UpdatedAt string              `json:"updated_at"`
+	ID        int64              `json:"id"`
+	Type      TicketType         `json:"type"`
+	Title     string             `json:"title"`
+	Content   string             `json:"content"`
+	Status    TicketStatus       `json:"status"`
+	Photo     *TicketPhotoBrief  `json:"photo,omitempty"`
+	Replies   []*TicketReplyItem `json:"replies"`
+	CreatedAt string             `json:"created_at"`
+	UpdatedAt string             `json:"updated_at"`
 }
 
 // TicketPhotoBrief represents brief photo info for ticket

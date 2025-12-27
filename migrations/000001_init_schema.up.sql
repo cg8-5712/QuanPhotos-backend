@@ -289,7 +289,7 @@ CREATE TABLE tickets (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT chk_tickets_type CHECK (type IN ('appeal', 'report', 'other')),
+    CONSTRAINT chk_tickets_type CHECK (type IN ('appeal', 'report', 'bug', 'feedback', 'other')),
     CONSTRAINT chk_tickets_status CHECK (status IN ('open', 'processing', 'resolved', 'closed'))
 );
 
