@@ -9,7 +9,10 @@ import (
 	"QuanPhotos/internal/pkg/jwt"
 	"QuanPhotos/internal/pkg/storage"
 	"QuanPhotos/internal/repository/postgresql/category"
+	"QuanPhotos/internal/repository/postgresql/comment"
 	"QuanPhotos/internal/repository/postgresql/photo"
+	"QuanPhotos/internal/repository/postgresql/ranking"
+	"QuanPhotos/internal/repository/postgresql/share"
 	"QuanPhotos/internal/repository/postgresql/tag"
 	"QuanPhotos/internal/repository/postgresql/ticket"
 	"QuanPhotos/internal/repository/postgresql/token"
@@ -17,7 +20,10 @@ import (
 	adminService "QuanPhotos/internal/service/admin"
 	"QuanPhotos/internal/service/auth"
 	categoryService "QuanPhotos/internal/service/category"
+	commentService "QuanPhotos/internal/service/comment"
 	photoService "QuanPhotos/internal/service/photo"
+	rankingService "QuanPhotos/internal/service/ranking"
+	shareService "QuanPhotos/internal/service/share"
 	"QuanPhotos/internal/service/system"
 	tagService "QuanPhotos/internal/service/tag"
 	ticketService "QuanPhotos/internal/service/ticket"
@@ -44,6 +50,9 @@ type Router struct {
 	ticketHandler   *TicketHandler
 	categoryHandler *CategoryHandler
 	tagHandler      *TagHandler
+	commentHandler  *CommentHandler
+	shareHandler    *ShareHandler
+	publicHandler   *PublicHandler
 }
 
 // NewRouter creates a new router instance
@@ -85,6 +94,9 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	ticketRepo := ticket.NewTicketRepository(db)
 	categoryRepo := category.NewCategoryRepository(db)
 	tagRepo := tag.NewTagRepository(db)
+	commentRepo := comment.NewCommentRepository(db)
+	shareRepo := share.NewShareRepository(db)
+	rankingRepo := ranking.NewRankingRepository(db)
 
 	// Initialize local storage
 	localStorage, err := storage.NewLocalStorage(cfg.Storage.Path, cfg.Storage.BaseURL)
@@ -113,6 +125,11 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	categorySvc := categoryService.New(categoryRepo, cfg.Storage.BaseURL)
 	tagSvc := tagService.New(tagRepo, cfg.Storage.BaseURL)
 
+	// Initialize comment, share, and ranking services
+	commentSvc := commentService.New(commentRepo, cfg.Storage.BaseURL)
+	shareSvc := shareService.New(shareRepo, cfg.Storage.BaseURL)
+	rankingSvc := rankingService.New(rankingRepo, cfg.Storage.BaseURL)
+
 	// Initialize handlers
 	systemHandler := NewSystemHandler(systemService)
 	authHandler := NewAuthHandler(authService)
@@ -122,6 +139,9 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	ticketHandler := NewTicketHandler(ticketSvc)
 	categoryHandler := NewCategoryHandler(categorySvc)
 	tagHandler := NewTagHandler(tagSvc)
+	commentHandler := NewCommentHandler(commentSvc)
+	shareHandler := NewShareHandler(shareSvc)
+	publicHandler := NewPublicHandler(photoRepo, rankingSvc, cfg.Storage.BaseURL)
 
 	return &Router{
 		engine:          engine,
@@ -135,6 +155,9 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 		ticketHandler:   ticketHandler,
 		categoryHandler: categoryHandler,
 		tagHandler:      tagHandler,
+		commentHandler:  commentHandler,
+		shareHandler:    shareHandler,
+		publicHandler:   publicHandler,
 	}
 }
 
@@ -180,6 +203,7 @@ func (r *Router) Setup() {
 			// Public routes
 			photos.GET("", r.photoHandler.List)
 			photos.GET("/:id", middleware.OptionalAuth(r.jwtManager), r.photoHandler.GetDetail)
+			photos.GET("/:id/comments", middleware.OptionalAuth(r.jwtManager), r.commentHandler.List)
 
 			// Protected routes (require authentication)
 			photos.POST("", middleware.Auth(r.jwtManager), r.photoHandler.Upload)
@@ -190,6 +214,17 @@ func (r *Router) Setup() {
 			photos.POST("/:id/like", middleware.Auth(r.jwtManager), r.photoHandler.AddLike)
 			photos.DELETE("/:id/like", middleware.Auth(r.jwtManager), r.photoHandler.RemoveLike)
 			photos.DELETE("/:id", middleware.Auth(r.jwtManager), r.photoHandler.Delete)
+			photos.POST("/:id/comments", middleware.Auth(r.jwtManager), r.commentHandler.Create)
+			photos.POST("/:id/share", middleware.Auth(r.jwtManager), r.shareHandler.Share)
+		}
+
+		// Comments routes (for individual comment operations)
+		comments := v1.Group("/comments")
+		comments.Use(middleware.Auth(r.jwtManager))
+		{
+			comments.DELETE("/:id", r.commentHandler.Delete)
+			comments.POST("/:id/like", r.commentHandler.AddLike)
+			comments.DELETE("/:id/like", r.commentHandler.RemoveLike)
 		}
 
 		// Categories routes
@@ -212,6 +247,23 @@ func (r *Router) Setup() {
 			tags.GET("", r.tagHandler.List)
 			tags.GET("/search", r.tagHandler.Search)
 			tags.GET("/:id/photos", r.tagHandler.ListPhotos)
+		}
+
+		// Featured photos routes (public)
+		v1.GET("/featured", r.publicHandler.ListFeatured)
+
+		// Rankings routes (public)
+		rankings := v1.Group("/rankings")
+		{
+			rankings.GET("/photos", r.publicHandler.PhotoRanking)
+			rankings.GET("/users", r.publicHandler.UserRanking)
+		}
+
+		// Public announcements routes
+		announcements := v1.Group("/announcements")
+		{
+			announcements.GET("", r.publicHandler.ListAnnouncements)
+			announcements.GET("/:id", r.publicHandler.GetAnnouncement)
 		}
 
 		// Tickets routes (require authentication)

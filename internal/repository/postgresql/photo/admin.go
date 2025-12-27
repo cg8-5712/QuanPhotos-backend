@@ -444,3 +444,140 @@ func (r *PhotoRepository) ListAnnouncements(ctx context.Context, params Announce
 		TotalPages:    totalPages,
 	}, nil
 }
+
+// ============================================
+// Public Methods
+// ============================================
+
+// FeaturedListParams contains parameters for listing featured photos
+type FeaturedListParams struct {
+	Page     int
+	PageSize int
+}
+
+// FeaturedListResult contains the result of listing featured photos
+type FeaturedListResult struct {
+	Photos     []*model.Photo
+	Total      int64
+	Page       int
+	PageSize   int
+	TotalPages int
+}
+
+// ListFeaturedPhotos lists featured photos publicly
+func (r *PhotoRepository) ListFeaturedPhotos(ctx context.Context, params FeaturedListParams) (*FeaturedListResult, error) {
+	if params.Page < 1 {
+		params.Page = 1
+	}
+	if params.PageSize < 1 {
+		params.PageSize = 20
+	}
+	if params.PageSize > 100 {
+		params.PageSize = 100
+	}
+
+	// Count total
+	countQuery := `
+		SELECT COUNT(*) FROM featured_photos fp
+		INNER JOIN photos p ON fp.photo_id = p.id
+		WHERE p.status = 'approved' AND (fp.expires_at IS NULL OR fp.expires_at > NOW())
+	`
+	var total int64
+	err := r.DB().GetContext(ctx, &total, countQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate pagination
+	offset := (params.Page - 1) * params.PageSize
+	totalPages := int(total) / params.PageSize
+	if int(total)%params.PageSize > 0 {
+		totalPages++
+	}
+
+	// Query featured photos
+	query := `
+		SELECT p.* FROM photos p
+		INNER JOIN featured_photos fp ON p.id = fp.photo_id
+		WHERE p.status = 'approved' AND (fp.expires_at IS NULL OR fp.expires_at > NOW())
+		ORDER BY fp.sort_order ASC, fp.featured_at DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	var photos []*model.Photo
+	err = r.DB().SelectContext(ctx, &photos, query, params.PageSize, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FeaturedListResult{
+		Photos:     photos,
+		Total:      total,
+		Page:       params.Page,
+		PageSize:   params.PageSize,
+		TotalPages: totalPages,
+	}, nil
+}
+
+// ListPublicAnnouncements lists published announcements
+func (r *PhotoRepository) ListPublicAnnouncements(ctx context.Context, params AnnouncementListParams) (*AnnouncementListResult, error) {
+	if params.Page < 1 {
+		params.Page = 1
+	}
+	if params.PageSize < 1 {
+		params.PageSize = 20
+	}
+	if params.PageSize > 100 {
+		params.PageSize = 100
+	}
+
+	// Count total (only published)
+	countQuery := `SELECT COUNT(*) FROM announcements WHERE status = 'published'`
+	var total int64
+	err := r.DB().GetContext(ctx, &total, countQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate pagination
+	offset := (params.Page - 1) * params.PageSize
+	totalPages := int(total) / params.PageSize
+	if int(total)%params.PageSize > 0 {
+		totalPages++
+	}
+
+	// Query announcements
+	query := `
+		SELECT * FROM announcements
+		WHERE status = 'published'
+		ORDER BY is_pinned DESC, published_at DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	var announcements []*Announcement
+	err = r.DB().SelectContext(ctx, &announcements, query, params.PageSize, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AnnouncementListResult{
+		Announcements: announcements,
+		Total:         total,
+		Page:          params.Page,
+		PageSize:      params.PageSize,
+		TotalPages:    totalPages,
+	}, nil
+}
+
+// GetPublicAnnouncementByID gets a published announcement by ID
+func (r *PhotoRepository) GetPublicAnnouncementByID(ctx context.Context, id int64) (*Announcement, error) {
+	var ann Announcement
+	err := r.DB().GetContext(ctx, &ann, `SELECT * FROM announcements WHERE id = $1 AND status = 'published'`, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, postgresql.ErrNotFound
+		}
+		return nil, err
+	}
+	return &ann, nil
+}
