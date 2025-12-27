@@ -9,12 +9,14 @@ import (
 	"QuanPhotos/internal/pkg/jwt"
 	"QuanPhotos/internal/pkg/storage"
 	"QuanPhotos/internal/repository/postgresql/photo"
+	"QuanPhotos/internal/repository/postgresql/ticket"
 	"QuanPhotos/internal/repository/postgresql/token"
 	"QuanPhotos/internal/repository/postgresql/user"
 	adminService "QuanPhotos/internal/service/admin"
 	"QuanPhotos/internal/service/auth"
 	photoService "QuanPhotos/internal/service/photo"
 	"QuanPhotos/internal/service/system"
+	ticketService "QuanPhotos/internal/service/ticket"
 	userService "QuanPhotos/internal/service/user"
 
 	"github.com/gin-gonic/gin"
@@ -35,6 +37,7 @@ type Router struct {
 	userHandler   *UserHandler
 	adminHandler  *AdminHandler
 	photoHandler  *PhotoHandler
+	ticketHandler *TicketHandler
 }
 
 // NewRouter creates a new router instance
@@ -73,6 +76,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	userRepo := user.NewUserRepository(db)
 	tokenRepo := token.NewTokenRepository(db)
 	photoRepo := photo.NewPhotoRepository(db)
+	ticketRepo := ticket.NewTicketRepository(db)
 
 	// Initialize local storage
 	localStorage, err := storage.NewLocalStorage(cfg.Storage.Path, cfg.Storage.BaseURL)
@@ -94,12 +98,16 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 		photoSvc = photoService.New(photoRepo, cfg.Storage.BaseURL)
 	}
 
+	// Initialize ticket service
+	ticketSvc := ticketService.New(ticketRepo, cfg.Storage.BaseURL)
+
 	// Initialize handlers
 	systemHandler := NewSystemHandler(systemService)
 	authHandler := NewAuthHandler(authService)
 	userHandler := NewUserHandler(userSvc)
 	adminHandler := NewAdminHandler(adminSvc)
 	photoHandler := NewPhotoHandler(photoSvc, cfg.Storage.MaxSize)
+	ticketHandler := NewTicketHandler(ticketSvc)
 
 	return &Router{
 		engine:        engine,
@@ -110,6 +118,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 		userHandler:   userHandler,
 		adminHandler:  adminHandler,
 		photoHandler:  photoHandler,
+		ticketHandler: ticketHandler,
 	}
 }
 
@@ -173,8 +182,15 @@ func (r *Router) Setup() {
 		// Tags routes (to be implemented)
 		// tags := v1.Group("/tags")
 
-		// Tickets routes (to be implemented)
-		// tickets := v1.Group("/tickets")
+		// Tickets routes (require authentication)
+		tickets := v1.Group("/tickets")
+		tickets.Use(middleware.Auth(r.jwtManager))
+		{
+			tickets.POST("", r.ticketHandler.Create)
+			tickets.GET("", r.ticketHandler.List)
+			tickets.GET("/:id", r.ticketHandler.GetDetail)
+			tickets.POST("/:id/replies", r.ticketHandler.Reply)
+		}
 
 		// Admin routes (require admin or superadmin role)
 		admin := v1.Group("/admin")
