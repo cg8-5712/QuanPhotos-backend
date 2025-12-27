@@ -287,21 +287,23 @@
 
 ## 超级管理员功能
 
+> ✅ 已完成
+
 ### 管理员权限管理
 
-- [ ] **P1** `GET /api/v1/superadmin/admins` 管理员列表
-- [ ] **P1** `POST /api/v1/superadmin/admins/:id/permissions` 授予权限
-- [ ] **P1** `DELETE /api/v1/superadmin/admins/:id/permissions` 撤销权限
+- [x] **P1** `GET /api/v1/superadmin/admins` 管理员列表
+- [x] **P1** `POST /api/v1/superadmin/admins/:id/permissions` 授予权限
+- [x] **P1** `DELETE /api/v1/superadmin/admins/:id/permissions` 撤销权限
 
 ### 审查员管理
 
-- [ ] **P1** `GET /api/v1/superadmin/reviewers` 审查员列表
-- [ ] **P1** `POST /api/v1/superadmin/reviewers/:id/categories` 授权分类
-- [ ] **P1** `DELETE /api/v1/superadmin/reviewers/:id/categories` 撤销分类
+- [x] **P1** `GET /api/v1/superadmin/reviewers` 审查员列表
+- [x] **P1** `POST /api/v1/superadmin/reviewers/:id/categories` 授权分类
+- [x] **P1** `DELETE /api/v1/superadmin/reviewers/:id/categories` 撤销分类
 
 ### 用户功能限制
 
-- [ ] **P1** `PUT /api/v1/superadmin/users/:id/restrictions` 禁用用户功能
+- [x] **P1** `PUT /api/v1/superadmin/users/:id/restrictions` 禁用用户功能
   - can_comment, can_message, can_upload
 
 ---
@@ -330,5 +332,5 @@
 
 ---
 
-*文档版本：v1.0*
-*生成日期：2025-12-25*
+*文档版本：v1.1*
+*生成日期：2025-12-27*

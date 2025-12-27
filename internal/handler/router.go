@@ -15,6 +15,7 @@ import (
 	"QuanPhotos/internal/repository/postgresql/photo"
 	"QuanPhotos/internal/repository/postgresql/ranking"
 	"QuanPhotos/internal/repository/postgresql/share"
+	"QuanPhotos/internal/repository/postgresql/superadmin"
 	"QuanPhotos/internal/repository/postgresql/tag"
 	"QuanPhotos/internal/repository/postgresql/ticket"
 	"QuanPhotos/internal/repository/postgresql/token"
@@ -28,6 +29,7 @@ import (
 	photoService "QuanPhotos/internal/service/photo"
 	rankingService "QuanPhotos/internal/service/ranking"
 	shareService "QuanPhotos/internal/service/share"
+	superadminService "QuanPhotos/internal/service/superadmin"
 	"QuanPhotos/internal/service/system"
 	tagService "QuanPhotos/internal/service/tag"
 	ticketService "QuanPhotos/internal/service/ticket"
@@ -59,6 +61,7 @@ type Router struct {
 	publicHandler       *PublicHandler
 	conversationHandler *ConversationHandler
 	notificationHandler *NotificationHandler
+	superadminHandler   *SuperadminHandler
 }
 
 // NewRouter creates a new router instance
@@ -105,6 +108,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	rankingRepo := ranking.NewRankingRepository(db)
 	conversationRepo := conversation.NewConversationRepository(db)
 	notificationRepo := notification.NewNotificationRepository(db)
+	superadminRepo := superadmin.NewSuperadminRepository(db)
 
 	// Initialize local storage
 	localStorage, err := storage.NewLocalStorage(cfg.Storage.Path, cfg.Storage.BaseURL)
@@ -141,6 +145,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	// Initialize conversation and notification services
 	conversationSvc := conversationService.New(conversationRepo)
 	notificationSvc := notificationService.New(notificationRepo)
+	superadminSvc := superadminService.New(superadminRepo)
 
 	// Initialize handlers
 	systemHandler := NewSystemHandler(systemService)
@@ -156,6 +161,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	publicHandler := NewPublicHandler(photoRepo, rankingSvc, cfg.Storage.BaseURL)
 	conversationHandler := NewConversationHandler(conversationSvc)
 	notificationHandler := NewNotificationHandler(notificationSvc)
+	superadminHandler := NewSuperadminHandler(superadminSvc)
 
 	return &Router{
 		engine:              engine,
@@ -174,6 +180,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 		publicHandler:       publicHandler,
 		conversationHandler: conversationHandler,
 		notificationHandler: notificationHandler,
+		superadminHandler:   superadminHandler,
 	}
 }
 
@@ -346,10 +353,30 @@ func (r *Router) Setup() {
 			admin.DELETE("/announcements/:id", r.adminHandler.DeleteAnnouncement)
 		}
 
-		// Superadmin routes (to be implemented)
-		// superadmin := v1.Group("/superadmin")
-		// superadmin.Use(middleware.Auth(r.jwtManager))
-		// superadmin.Use(middleware.RequireSuperAdmin())
+		// Superadmin routes (require superadmin role)
+		superadminRoutes := v1.Group("/superadmin")
+		superadminRoutes.Use(middleware.Auth(r.jwtManager))
+		superadminRoutes.Use(middleware.RequireMinRole(model.RoleSuperAdmin))
+		{
+			// Available permissions
+			superadminRoutes.GET("/permissions", r.superadminHandler.ListAvailablePermissions)
+
+			// Admin management
+			superadminRoutes.GET("/admins", r.superadminHandler.ListAdmins)
+			superadminRoutes.GET("/admins/:id/permissions", r.superadminHandler.GetAdminPermissions)
+			superadminRoutes.POST("/admins/:id/permissions", r.superadminHandler.GrantPermissions)
+			superadminRoutes.DELETE("/admins/:id/permissions", r.superadminHandler.RevokePermissions)
+
+			// Reviewer management
+			superadminRoutes.GET("/reviewers", r.superadminHandler.ListReviewers)
+			superadminRoutes.GET("/reviewers/:id/categories", r.superadminHandler.GetReviewerCategories)
+			superadminRoutes.POST("/reviewers/:id/categories", r.superadminHandler.AssignCategories)
+			superadminRoutes.DELETE("/reviewers/:id/categories", r.superadminHandler.RevokeCategories)
+
+			// User restrictions
+			superadminRoutes.GET("/users/:id/restrictions", r.superadminHandler.GetUserRestrictions)
+			superadminRoutes.PUT("/users/:id/restrictions", r.superadminHandler.UpdateUserRestrictions)
+		}
 	}
 }
 
