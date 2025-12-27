@@ -58,7 +58,10 @@ type ListRequest struct {
 	AircraftType string `form:"aircraft_type"`
 	Airline      string `form:"airline"`
 	Airport      string `form:"airport"`
+	Registration string `form:"registration"`
 	Keyword      string `form:"keyword"`
+	TakenFrom    string `form:"taken_from"` // Date in format "2006-01-02"
+	TakenTo      string `form:"taken_to"`   // Date in format "2006-01-02"
 	SortBy       string `form:"sort_by"`
 	SortOrder    string `form:"sort_order"`
 }
@@ -86,7 +89,10 @@ func (s *Service) List(ctx context.Context, req *ListRequest) (*ListResponse, er
 		AircraftType: req.AircraftType,
 		Airline:      req.Airline,
 		Airport:      req.Airport,
+		Registration: req.Registration,
 		Keyword:      req.Keyword,
+		TakenFrom:    req.TakenFrom,
+		TakenTo:      req.TakenTo,
 		SortBy:       req.SortBy,
 		SortOrder:    req.SortOrder,
 	})

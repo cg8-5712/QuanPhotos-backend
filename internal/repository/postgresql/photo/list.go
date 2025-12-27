@@ -20,7 +20,10 @@ type ListParams struct {
 	AircraftType string
 	Airline      string
 	Airport      string
+	Registration string
 	Keyword      string
+	TakenFrom    string // Date in format "2006-01-02"
+	TakenTo      string // Date in format "2006-01-02"
 	SortBy       string // created_at, view_count, like_count, favorite_count
 	SortOrder    string // asc, desc
 }
@@ -113,9 +116,27 @@ func (r *PhotoRepository) List(ctx context.Context, params ListParams) (*ListRes
 		argIndex++
 	}
 
+	if params.Registration != "" {
+		conditions = append(conditions, fmt.Sprintf("registration ILIKE $%d", argIndex))
+		args = append(args, "%"+params.Registration+"%")
+		argIndex++
+	}
+
 	if params.Keyword != "" {
 		conditions = append(conditions, fmt.Sprintf("(title ILIKE $%d OR description ILIKE $%d OR aircraft_type ILIKE $%d OR registration ILIKE $%d)", argIndex, argIndex, argIndex, argIndex))
 		args = append(args, "%"+params.Keyword+"%")
+		argIndex++
+	}
+
+	if params.TakenFrom != "" {
+		conditions = append(conditions, fmt.Sprintf("exif_taken_at >= $%d", argIndex))
+		args = append(args, params.TakenFrom)
+		argIndex++
+	}
+
+	if params.TakenTo != "" {
+		conditions = append(conditions, fmt.Sprintf("exif_taken_at <= $%d::date + interval '1 day'", argIndex))
+		args = append(args, params.TakenTo)
 		argIndex++
 	}
 

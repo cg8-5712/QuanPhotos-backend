@@ -8,14 +8,18 @@ import (
 	"QuanPhotos/internal/model"
 	"QuanPhotos/internal/pkg/jwt"
 	"QuanPhotos/internal/pkg/storage"
+	"QuanPhotos/internal/repository/postgresql/category"
 	"QuanPhotos/internal/repository/postgresql/photo"
+	"QuanPhotos/internal/repository/postgresql/tag"
 	"QuanPhotos/internal/repository/postgresql/ticket"
 	"QuanPhotos/internal/repository/postgresql/token"
 	"QuanPhotos/internal/repository/postgresql/user"
 	adminService "QuanPhotos/internal/service/admin"
 	"QuanPhotos/internal/service/auth"
+	categoryService "QuanPhotos/internal/service/category"
 	photoService "QuanPhotos/internal/service/photo"
 	"QuanPhotos/internal/service/system"
+	tagService "QuanPhotos/internal/service/tag"
 	ticketService "QuanPhotos/internal/service/ticket"
 	userService "QuanPhotos/internal/service/user"
 
@@ -32,12 +36,14 @@ type Router struct {
 	jwtManager *jwt.Manager
 
 	// Handlers
-	systemHandler *SystemHandler
-	authHandler   *AuthHandler
-	userHandler   *UserHandler
-	adminHandler  *AdminHandler
-	photoHandler  *PhotoHandler
-	ticketHandler *TicketHandler
+	systemHandler   *SystemHandler
+	authHandler     *AuthHandler
+	userHandler     *UserHandler
+	adminHandler    *AdminHandler
+	photoHandler    *PhotoHandler
+	ticketHandler   *TicketHandler
+	categoryHandler *CategoryHandler
+	tagHandler      *TagHandler
 }
 
 // NewRouter creates a new router instance
@@ -77,6 +83,8 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	tokenRepo := token.NewTokenRepository(db)
 	photoRepo := photo.NewPhotoRepository(db)
 	ticketRepo := ticket.NewTicketRepository(db)
+	categoryRepo := category.NewCategoryRepository(db)
+	tagRepo := tag.NewTagRepository(db)
 
 	// Initialize local storage
 	localStorage, err := storage.NewLocalStorage(cfg.Storage.Path, cfg.Storage.BaseURL)
@@ -101,6 +109,10 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	// Initialize ticket service
 	ticketSvc := ticketService.New(ticketRepo, cfg.Storage.BaseURL)
 
+	// Initialize category and tag services
+	categorySvc := categoryService.New(categoryRepo, cfg.Storage.BaseURL)
+	tagSvc := tagService.New(tagRepo, cfg.Storage.BaseURL)
+
 	// Initialize handlers
 	systemHandler := NewSystemHandler(systemService)
 	authHandler := NewAuthHandler(authService)
@@ -108,17 +120,21 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	adminHandler := NewAdminHandler(adminSvc)
 	photoHandler := NewPhotoHandler(photoSvc, cfg.Storage.MaxSize)
 	ticketHandler := NewTicketHandler(ticketSvc)
+	categoryHandler := NewCategoryHandler(categorySvc)
+	tagHandler := NewTagHandler(tagSvc)
 
 	return &Router{
-		engine:        engine,
-		config:        cfg,
-		jwtManager:    jwtManager,
-		systemHandler: systemHandler,
-		authHandler:   authHandler,
-		userHandler:   userHandler,
-		adminHandler:  adminHandler,
-		photoHandler:  photoHandler,
-		ticketHandler: ticketHandler,
+		engine:          engine,
+		config:          cfg,
+		jwtManager:      jwtManager,
+		systemHandler:   systemHandler,
+		authHandler:     authHandler,
+		userHandler:     userHandler,
+		adminHandler:    adminHandler,
+		photoHandler:    photoHandler,
+		ticketHandler:   ticketHandler,
+		categoryHandler: categoryHandler,
+		tagHandler:      tagHandler,
 	}
 }
 
@@ -176,11 +192,27 @@ func (r *Router) Setup() {
 			photos.DELETE("/:id", middleware.Auth(r.jwtManager), r.photoHandler.Delete)
 		}
 
-		// Categories routes (to be implemented)
-		// categories := v1.Group("/categories")
+		// Categories routes
+		categories := v1.Group("/categories")
+		{
+			// Public routes
+			categories.GET("", r.categoryHandler.List)
+			categories.GET("/:id", r.categoryHandler.GetByID)
 
-		// Tags routes (to be implemented)
-		// tags := v1.Group("/tags")
+			// Admin routes
+			categories.POST("", middleware.Auth(r.jwtManager), middleware.RequireMinRole(model.RoleAdmin), r.categoryHandler.Create)
+			categories.PUT("/:id", middleware.Auth(r.jwtManager), middleware.RequireMinRole(model.RoleAdmin), r.categoryHandler.Update)
+			categories.DELETE("/:id", middleware.Auth(r.jwtManager), middleware.RequireMinRole(model.RoleAdmin), r.categoryHandler.Delete)
+		}
+
+		// Tags routes
+		tags := v1.Group("/tags")
+		{
+			// Public routes
+			tags.GET("", r.tagHandler.List)
+			tags.GET("/search", r.tagHandler.Search)
+			tags.GET("/:id/photos", r.tagHandler.ListPhotos)
+		}
 
 		// Tickets routes (require authentication)
 		tickets := v1.Group("/tickets")

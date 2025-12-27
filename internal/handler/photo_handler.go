@@ -134,7 +134,10 @@ func (h *PhotoHandler) Upload(c *gin.Context) {
 // @Param aircraft_type query string false "Filter by aircraft type"
 // @Param airline query string false "Filter by airline"
 // @Param airport query string false "Filter by airport"
-// @Param keyword query string false "Search keyword"
+// @Param registration query string false "Filter by aircraft registration"
+// @Param keyword query string false "Search keyword (title, description, aircraft_type, registration)"
+// @Param taken_from query string false "Filter by photo taken date from (format: 2006-01-02)"
+// @Param taken_to query string false "Filter by photo taken date to (format: 2006-01-02)"
 // @Param sort_by query string false "Sort by: created_at, view_count, like_count, favorite_count"
 // @Param sort_order query string false "Sort order: asc, desc"
 // @Success 200 {object} response.Response
