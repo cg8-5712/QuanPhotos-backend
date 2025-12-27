@@ -18,8 +18,8 @@
 | 第六阶段 | 管理后台接口 | ✅ 完成 |
 | 第七阶段 | 功能增强 | ✅ 完成 |
 | 第八阶段 | 社交互动功能 | ✅ 完成 |
-| 第九阶段 | 私信与站内信 | 🔴 未开始 |
-| 第十阶段 | 安全与性能 | 🟡 部分完成 |
+| 第九阶段 | 私信与站内信 | ✅ 完成 |
+| 第十阶段 | 安全与性能 | ✅ 完成（不含缓存）|
 | 第十一阶段 | 部署与运维 | ✅ 基本完成 |
 
 ---
@@ -224,47 +224,53 @@
 
 ## 第九阶段：私信与站内信
 
+> ✅ 已完成
+
 ### 私信系统
 
-- [ ] **P0** `GET /api/v1/conversations` 会话列表
-- [ ] **P0** `POST /api/v1/conversations` 创建会话/发送私信
-- [ ] **P0** `GET /api/v1/conversations/:id` 获取会话消息
-- [ ] **P0** `POST /api/v1/conversations/:id` 发送消息
-- [ ] **P1** `DELETE /api/v1/conversations/:id` 删除会话
-- [ ] **P1** 未读消息计数
+- [x] **P0** `GET /api/v1/conversations` 会话列表
+- [x] **P0** `POST /api/v1/conversations` 创建会话/发送私信
+- [x] **P0** `GET /api/v1/conversations/:id` 获取会话消息
+- [x] **P0** `POST /api/v1/conversations/:id` 发送消息
+- [x] **P1** `DELETE /api/v1/conversations/:id` 删除会话
+- [x] **P1** 未读消息计数
 
 ### 站内通知系统
 
-- [ ] **P1** `GET /api/v1/notifications` 通知列表
-- [ ] **P1** `GET /api/v1/notifications/unread` 未读数量
-- [ ] **P1** `PUT /api/v1/notifications/:id/read` 标记已读
-- [ ] **P1** `PUT /api/v1/notifications/read-all` 全部标记已读
+- [x] **P1** `GET /api/v1/notifications` 通知列表
+- [x] **P1** `GET /api/v1/notifications/unread` 未读数量
+- [x] **P1** `PUT /api/v1/notifications/:id/read` 标记已读
+- [x] **P1** `PUT /api/v1/notifications/read-all` 全部标记已读
 
 ### 通知触发
 
-- [ ] **P1** 点赞时创建通知
-- [ ] **P1** 评论时创建通知
-- [ ] **P1** 回复时创建通知
-- [ ] **P1** 入选精选时创建通知
-- [ ] **P1** 审核结果通知
+- [x] **P1** 点赞时创建通知
+- [x] **P1** 评论时创建通知
+- [x] **P1** 回复时创建通知
+- [x] **P1** 入选精选时创建通知
+- [x] **P1** 审核结果通知
 
 ---
 
 ## 第十阶段：安全与性能
 
+> ✅ 已完成（不含缓存）
+
 ### 限流中间件 `internal/middleware/rate_limit.go`
 
-- [ ] **P0** 全局请求限流
-- [ ] **P0** 登录接口限流（防暴力破解）
-- [ ] **P1** 上传接口限流（每用户每小时）
+- [x] **P0** 全局请求限流
+- [x] **P0** 登录接口限流（防暴力破解）
+- [x] **P1** 上传接口限流（每用户每小时）
 
 ### 上传安全
 
-- [ ] **P0** MIME 类型验证（不仅检查扩展名）
-- [ ] **P0** 文件头魔数检查
-- [ ] **P1** 路径遍历防护
+- [x] **P0** MIME 类型验证（不仅检查扩展名）
+- [x] **P0** 文件头魔数检查
+- [x] **P1** 路径遍历防护
 
 ### Redis 缓存 `internal/pkg/cache/`
+
+> ⏳ 暂不实现，后续可根据需要添加
 
 - [ ] **P2** Redis 连接配置
 - [ ] **P2** 热点照片缓存

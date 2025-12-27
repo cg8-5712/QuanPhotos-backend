@@ -10,6 +10,8 @@ import (
 	"QuanPhotos/internal/pkg/storage"
 	"QuanPhotos/internal/repository/postgresql/category"
 	"QuanPhotos/internal/repository/postgresql/comment"
+	"QuanPhotos/internal/repository/postgresql/conversation"
+	"QuanPhotos/internal/repository/postgresql/notification"
 	"QuanPhotos/internal/repository/postgresql/photo"
 	"QuanPhotos/internal/repository/postgresql/ranking"
 	"QuanPhotos/internal/repository/postgresql/share"
@@ -21,6 +23,8 @@ import (
 	"QuanPhotos/internal/service/auth"
 	categoryService "QuanPhotos/internal/service/category"
 	commentService "QuanPhotos/internal/service/comment"
+	conversationService "QuanPhotos/internal/service/conversation"
+	notificationService "QuanPhotos/internal/service/notification"
 	photoService "QuanPhotos/internal/service/photo"
 	rankingService "QuanPhotos/internal/service/ranking"
 	shareService "QuanPhotos/internal/service/share"
@@ -42,17 +46,19 @@ type Router struct {
 	jwtManager *jwt.Manager
 
 	// Handlers
-	systemHandler   *SystemHandler
-	authHandler     *AuthHandler
-	userHandler     *UserHandler
-	adminHandler    *AdminHandler
-	photoHandler    *PhotoHandler
-	ticketHandler   *TicketHandler
-	categoryHandler *CategoryHandler
-	tagHandler      *TagHandler
-	commentHandler  *CommentHandler
-	shareHandler    *ShareHandler
-	publicHandler   *PublicHandler
+	systemHandler       *SystemHandler
+	authHandler         *AuthHandler
+	userHandler         *UserHandler
+	adminHandler        *AdminHandler
+	photoHandler        *PhotoHandler
+	ticketHandler       *TicketHandler
+	categoryHandler     *CategoryHandler
+	tagHandler          *TagHandler
+	commentHandler      *CommentHandler
+	shareHandler        *ShareHandler
+	publicHandler       *PublicHandler
+	conversationHandler *ConversationHandler
+	notificationHandler *NotificationHandler
 }
 
 // NewRouter creates a new router instance
@@ -97,6 +103,8 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	commentRepo := comment.NewCommentRepository(db)
 	shareRepo := share.NewShareRepository(db)
 	rankingRepo := ranking.NewRankingRepository(db)
+	conversationRepo := conversation.NewConversationRepository(db)
+	notificationRepo := notification.NewNotificationRepository(db)
 
 	// Initialize local storage
 	localStorage, err := storage.NewLocalStorage(cfg.Storage.Path, cfg.Storage.BaseURL)
@@ -130,6 +138,10 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	shareSvc := shareService.New(shareRepo, cfg.Storage.BaseURL)
 	rankingSvc := rankingService.New(rankingRepo, cfg.Storage.BaseURL)
 
+	// Initialize conversation and notification services
+	conversationSvc := conversationService.New(conversationRepo)
+	notificationSvc := notificationService.New(notificationRepo)
+
 	// Initialize handlers
 	systemHandler := NewSystemHandler(systemService)
 	authHandler := NewAuthHandler(authService)
@@ -142,22 +154,26 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	commentHandler := NewCommentHandler(commentSvc)
 	shareHandler := NewShareHandler(shareSvc)
 	publicHandler := NewPublicHandler(photoRepo, rankingSvc, cfg.Storage.BaseURL)
+	conversationHandler := NewConversationHandler(conversationSvc)
+	notificationHandler := NewNotificationHandler(notificationSvc)
 
 	return &Router{
-		engine:          engine,
-		config:          cfg,
-		jwtManager:      jwtManager,
-		systemHandler:   systemHandler,
-		authHandler:     authHandler,
-		userHandler:     userHandler,
-		adminHandler:    adminHandler,
-		photoHandler:    photoHandler,
-		ticketHandler:   ticketHandler,
-		categoryHandler: categoryHandler,
-		tagHandler:      tagHandler,
-		commentHandler:  commentHandler,
-		shareHandler:    shareHandler,
-		publicHandler:   publicHandler,
+		engine:              engine,
+		config:              cfg,
+		jwtManager:          jwtManager,
+		systemHandler:       systemHandler,
+		authHandler:         authHandler,
+		userHandler:         userHandler,
+		adminHandler:        adminHandler,
+		photoHandler:        photoHandler,
+		ticketHandler:       ticketHandler,
+		categoryHandler:     categoryHandler,
+		tagHandler:          tagHandler,
+		commentHandler:      commentHandler,
+		shareHandler:        shareHandler,
+		publicHandler:       publicHandler,
+		conversationHandler: conversationHandler,
+		notificationHandler: notificationHandler,
 	}
 }
 
@@ -179,7 +195,7 @@ func (r *Router) Setup() {
 		authRoutes := v1.Group("/auth")
 		{
 			authRoutes.POST("/register", r.authHandler.Register)
-			authRoutes.POST("/login", r.authHandler.Login)
+			authRoutes.POST("/login", middleware.LoginRateLimiter(), r.authHandler.Login)
 			authRoutes.POST("/refresh", r.authHandler.Refresh)
 			authRoutes.POST("/logout", r.authHandler.Logout)
 		}
@@ -206,7 +222,7 @@ func (r *Router) Setup() {
 			photos.GET("/:id/comments", middleware.OptionalAuth(r.jwtManager), r.commentHandler.List)
 
 			// Protected routes (require authentication)
-			photos.POST("", middleware.Auth(r.jwtManager), r.photoHandler.Upload)
+			photos.POST("", middleware.Auth(r.jwtManager), middleware.UploadRateLimiter(), r.photoHandler.Upload)
 			photos.GET("/mine", middleware.Auth(r.jwtManager), r.photoHandler.ListMine)
 			photos.GET("/favorites", middleware.Auth(r.jwtManager), r.photoHandler.ListFavorites)
 			photos.POST("/:id/favorite", middleware.Auth(r.jwtManager), r.photoHandler.AddFavorite)
@@ -264,6 +280,27 @@ func (r *Router) Setup() {
 		{
 			announcements.GET("", r.publicHandler.ListAnnouncements)
 			announcements.GET("/:id", r.publicHandler.GetAnnouncement)
+		}
+
+		// Conversations routes (require authentication)
+		conversations := v1.Group("/conversations")
+		conversations.Use(middleware.Auth(r.jwtManager))
+		{
+			conversations.GET("", r.conversationHandler.List)
+			conversations.POST("", r.conversationHandler.Create)
+			conversations.GET("/:id", r.conversationHandler.GetMessages)
+			conversations.POST("/:id", r.conversationHandler.SendMessage)
+			conversations.DELETE("/:id", r.conversationHandler.Delete)
+		}
+
+		// Notifications routes (require authentication)
+		notifications := v1.Group("/notifications")
+		notifications.Use(middleware.Auth(r.jwtManager))
+		{
+			notifications.GET("", r.notificationHandler.List)
+			notifications.GET("/unread", r.notificationHandler.GetUnreadCount)
+			notifications.PUT("/:id/read", r.notificationHandler.MarkAsRead)
+			notifications.PUT("/read-all", r.notificationHandler.MarkAllAsRead)
 		}
 
 		// Tickets routes (require authentication)
