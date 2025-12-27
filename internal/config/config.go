@@ -70,17 +70,17 @@ type StorageConfig struct {
 
 // ImageConfig holds image processing configuration
 type ImageConfig struct {
-	MaxDimension    int
-	Quality         int
-	ThumbSmWidth    int
-	ThumbSmHeight   int
-	ThumbSmQuality  int
-	ThumbMdWidth    int
-	ThumbMdHeight   int
-	ThumbMdQuality  int
-	ThumbLgWidth    int
-	ThumbLgHeight   int
-	ThumbLgQuality  int
+	MaxDimension   int
+	Quality        int
+	ThumbSmWidth   int
+	ThumbSmHeight  int
+	ThumbSmQuality int
+	ThumbMdWidth   int
+	ThumbMdHeight  int
+	ThumbMdQuality int
+	ThumbLgWidth   int
+	ThumbLgHeight  int
+	ThumbLgQuality int
 }
 
 // AIConfig holds AI service configuration

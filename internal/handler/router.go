@@ -189,8 +189,8 @@ func (r *Router) Setup() {
 	// Health check endpoint
 	r.engine.GET("/health", r.systemHandler.Health)
 
-	// Static file serving for uploads
-	r.engine.Static("/uploads", r.config.Storage.Path)
+	// Static file serving for data directory
+	r.engine.Static("/data", r.config.Storage.Path)
 
 	// API v1 routes
 	v1 := r.engine.Group("/api/v1")
