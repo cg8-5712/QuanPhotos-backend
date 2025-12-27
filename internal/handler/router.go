@@ -88,7 +88,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB) *Router {
 	systemService := system.NewService(cfg)
 	authService := auth.New(db, userRepo, tokenRepo, jwtManager)
 	userSvc := userService.New(userRepo)
-	adminSvc := adminService.New(userRepo)
+	adminSvc := adminService.NewFull(userRepo, photoRepo, ticketRepo, cfg.Storage.BaseURL)
 
 	// Initialize photo service with uploader if storage is available
 	var photoSvc *photoService.Service
@@ -202,26 +202,27 @@ func (r *Router) Setup() {
 			admin.PUT("/users/:id/role", r.adminHandler.UpdateUserRole)
 			admin.PUT("/users/:id/status", r.adminHandler.UpdateUserStatus)
 
-			// Reviews routes (to be implemented)
-			// admin.GET("/reviews", r.adminHandler.ListReviews)
-			// admin.POST("/reviews/:id", r.adminHandler.ReviewPhoto)
+			// Photo reviews
+			admin.GET("/reviews", r.adminHandler.ListReviews)
+			admin.POST("/reviews/:id", r.adminHandler.ReviewPhoto)
 
-			// Tickets routes (to be implemented)
-			// admin.GET("/tickets", r.adminHandler.ListTickets)
-			// admin.PUT("/tickets/:id", r.adminHandler.ProcessTicket)
+			// Photo management
+			admin.DELETE("/photos/:id", r.adminHandler.AdminDeletePhoto)
 
-			// Featured routes (to be implemented)
-			// admin.POST("/featured", r.adminHandler.CreateFeatured)
-			// admin.DELETE("/featured/:id", r.adminHandler.DeleteFeatured)
+			// Ticket management
+			admin.GET("/tickets", r.adminHandler.ListTickets)
+			admin.PUT("/tickets/:id", r.adminHandler.ProcessTicket)
 
-			// Announcements routes (to be implemented)
-			// admin.GET("/announcements", r.adminHandler.ListAnnouncements)
-			// admin.POST("/announcements", r.adminHandler.CreateAnnouncement)
-			// admin.PUT("/announcements/:id", r.adminHandler.UpdateAnnouncement)
-			// admin.DELETE("/announcements/:id", r.adminHandler.DeleteAnnouncement)
+			// Featured photos
+			admin.POST("/featured", r.adminHandler.AddFeatured)
+			admin.DELETE("/featured/:id", r.adminHandler.RemoveFeatured)
 
-			// Photos routes (to be implemented)
-			// admin.DELETE("/photos/:id", r.adminHandler.DeletePhoto)
+			// Announcements
+			admin.GET("/announcements", r.adminHandler.ListAnnouncements)
+			admin.GET("/announcements/:id", r.adminHandler.GetAnnouncement)
+			admin.POST("/announcements", r.adminHandler.CreateAnnouncement)
+			admin.PUT("/announcements/:id", r.adminHandler.UpdateAnnouncement)
+			admin.DELETE("/announcements/:id", r.adminHandler.DeleteAnnouncement)
 		}
 
 		// Superadmin routes (to be implemented)

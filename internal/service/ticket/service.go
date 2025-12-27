@@ -32,7 +32,7 @@ func New(ticketRepo *ticket.TicketRepository, baseURL string) *Service {
 // CreateRequest represents request for creating a ticket
 type CreateRequest struct {
 	PhotoID *int64           `json:"photo_id"`
-	Type    model.TicketType `json:"type" binding:"required,oneof=appeal report other"`
+	Type    model.TicketType `json:"type" binding:"required,oneof=appeal report bug feedback other"`
 	Title   string           `json:"title" binding:"required,max=200"`
 	Content string           `json:"content" binding:"required"`
 }
