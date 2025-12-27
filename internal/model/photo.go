@@ -83,16 +83,18 @@ type Photo struct {
 
 // PhotoListItem represents a photo in list view
 type PhotoListItem struct {
-	ID            int64   `json:"id"`
-	Title         string  `json:"title"`
-	ThumbnailURL  string  `json:"thumbnail_url"`
-	AircraftType  *string `json:"aircraft_type,omitempty"`
-	Airline       *string `json:"airline,omitempty"`
-	Registration  *string `json:"registration,omitempty"`
-	ViewCount     int     `json:"view_count"`
-	LikeCount     int     `json:"like_count"`
-	FavoriteCount int     `json:"favorite_count"`
-	CreatedAt     string  `json:"created_at"`
+	ID            int64      `json:"id"`
+	Title         string     `json:"title"`
+	ThumbnailURL  string     `json:"thumbnail_url"`
+	AircraftType  *string    `json:"aircraft_type,omitempty"`
+	Airline       *string    `json:"airline,omitempty"`
+	Airport       *string    `json:"airport,omitempty"`
+	Registration  *string    `json:"registration,omitempty"`
+	ViewCount     int        `json:"view_count"`
+	LikeCount     int        `json:"like_count"`
+	FavoriteCount int        `json:"favorite_count"`
+	CommentCount  int        `json:"comment_count"`
+	CreatedAt     string     `json:"created_at"`
 	User          *UserBrief `json:"user"`
 }
 
@@ -105,29 +107,29 @@ type UserBrief struct {
 
 // PhotoDetail represents detailed photo information
 type PhotoDetail struct {
-	ID            int64         `json:"id"`
-	Title         string        `json:"title"`
-	Description   *string       `json:"description,omitempty"`
-	ImageURL      string        `json:"image_url"`
-	ThumbnailURL  string        `json:"thumbnail_url"`
-	HasRAW        bool          `json:"has_raw"`
-	Status        PhotoStatus   `json:"status"`
-	AircraftType  *string       `json:"aircraft_type,omitempty"`
-	Airline       *string       `json:"airline,omitempty"`
-	Registration  *string       `json:"registration,omitempty"`
-	Airport       *string       `json:"airport,omitempty"`
+	ID            int64          `json:"id"`
+	Title         string         `json:"title"`
+	Description   *string        `json:"description,omitempty"`
+	ImageURL      string         `json:"image_url"`
+	ThumbnailURL  string         `json:"thumbnail_url"`
+	HasRAW        bool           `json:"has_raw"`
+	Status        PhotoStatus    `json:"status"`
+	AircraftType  *string        `json:"aircraft_type,omitempty"`
+	Airline       *string        `json:"airline,omitempty"`
+	Registration  *string        `json:"registration,omitempty"`
+	Airport       *string        `json:"airport,omitempty"`
 	Category      *CategoryBrief `json:"category,omitempty"`
-	Tags          []string      `json:"tags"`
-	EXIF          *PhotoEXIF    `json:"exif,omitempty"`
-	ViewCount     int           `json:"view_count"`
-	LikeCount     int           `json:"like_count"`
-	FavoriteCount int           `json:"favorite_count"`
-	CommentCount  int           `json:"comment_count"`
-	IsFavorited   bool          `json:"is_favorited"`
-	IsLiked       bool          `json:"is_liked"`
-	CreatedAt     string        `json:"created_at"`
-	ApprovedAt    *string       `json:"approved_at,omitempty"`
-	User          *UserBrief    `json:"user"`
+	Tags          []string       `json:"tags"`
+	EXIF          *PhotoEXIF     `json:"exif,omitempty"`
+	ViewCount     int            `json:"view_count"`
+	LikeCount     int            `json:"like_count"`
+	FavoriteCount int            `json:"favorite_count"`
+	CommentCount  int            `json:"comment_count"`
+	IsFavorited   bool           `json:"is_favorited"`
+	IsLiked       bool           `json:"is_liked"`
+	CreatedAt     string         `json:"created_at"`
+	ApprovedAt    *string        `json:"approved_at,omitempty"`
+	User          *UserBrief     `json:"user"`
 }
 
 // CategoryBrief represents brief category info
@@ -165,6 +167,7 @@ func (p *Photo) ToListItem(user *UserBrief, baseURL string) *PhotoListItem {
 		ViewCount:     p.ViewCount,
 		LikeCount:     p.LikeCount,
 		FavoriteCount: p.FavoriteCount,
+		CommentCount:  p.CommentCount,
 		CreatedAt:     p.CreatedAt.Format(time.RFC3339),
 		User:          user,
 	}
@@ -177,6 +180,9 @@ func (p *Photo) ToListItem(user *UserBrief, baseURL string) *PhotoListItem {
 	}
 	if p.Airline.Valid {
 		item.Airline = &p.Airline.String
+	}
+	if p.Airport.Valid {
+		item.Airport = &p.Airport.String
 	}
 	if p.Registration.Valid {
 		item.Registration = &p.Registration.String
