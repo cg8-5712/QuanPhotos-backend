@@ -87,7 +87,7 @@ func (s *Service) List(ctx context.Context, req *ListRequest) (*ListResponse, er
 
 // SearchRequest represents request for searching tags
 type SearchRequest struct {
-	Keyword string `form:"q" binding:"required,min=1"`
+	Keyword string `form:"keyword" binding:"required,min=1"`
 	Limit   int    `form:"limit"`
 }
 

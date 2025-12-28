@@ -357,9 +357,14 @@ func (r *TagRepository) GetUserMap(ctx context.Context, userIDs []int64) (map[in
 		return make(map[int64]*model.User), nil
 	}
 
-	query := `SELECT * FROM users WHERE id = ANY($1)`
+	query, args, err := sqlx.In(`SELECT * FROM users WHERE id IN (?)`, userIDs)
+	if err != nil {
+		return nil, err
+	}
+	query = r.DB().Rebind(query)
+
 	var users []*model.User
-	err := r.DB().SelectContext(ctx, &users, query, userIDs)
+	err = r.DB().SelectContext(ctx, &users, query, args...)
 	if err != nil {
 		return nil, err
 	}
