@@ -7,6 +7,8 @@ import (
 
 	"QuanPhotos/internal/model"
 	"QuanPhotos/internal/repository/postgresql"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // GetByID retrieves a ticket by ID
@@ -119,14 +121,18 @@ func (r *TicketRepository) GetUserBriefMap(ctx context.Context, userIDs []int64)
 		return make(map[int64]*model.TicketUserBrief), nil
 	}
 
-	query := `SELECT id, username, role FROM users WHERE id = ANY($1)`
+	query, args, err := sqlx.In(`SELECT id, username, role FROM users WHERE id IN (?)`, userIDs)
+	if err != nil {
+		return nil, err
+	}
+	query = r.DB().Rebind(query)
 
 	var users []struct {
 		ID       int64          `db:"id"`
 		Username string         `db:"username"`
 		Role     model.UserRole `db:"role"`
 	}
-	err := r.DB().SelectContext(ctx, &users, query, userIDs)
+	err = r.DB().SelectContext(ctx, &users, query, args...)
 	if err != nil {
 		return nil, err
 	}
