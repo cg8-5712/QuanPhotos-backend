@@ -113,6 +113,16 @@ func (r *CategoryRepository) GetByID(ctx context.Context, id int32) (*model.Cate
 
 // Create creates a new category
 func (r *CategoryRepository) Create(ctx context.Context, name, nameEN, description string, sortOrder int) (*model.Category, error) {
+	// Check if name or name_en already exists
+	var exists bool
+	err := r.DB().GetContext(ctx, &exists, `SELECT EXISTS(SELECT 1 FROM categories WHERE name = $1 OR name_en = $2)`, name, nameEN)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, postgresql.ErrDuplicateKey
+	}
+
 	query := `
 		INSERT INTO categories (name, name_en, description, sort_order)
 		VALUES ($1, $2, $3, $4)
@@ -120,7 +130,7 @@ func (r *CategoryRepository) Create(ctx context.Context, name, nameEN, descripti
 	`
 
 	var cat model.Category
-	err := r.DB().QueryRowContext(ctx, query, name, nameEN, toNullString(&description), sortOrder).Scan(
+	err = r.DB().QueryRowContext(ctx, query, name, nameEN, toNullString(&description), sortOrder).Scan(
 		&cat.ID, &cat.Name, &cat.NameEN, &cat.Description, &cat.SortOrder, &cat.CreatedAt, &cat.UpdatedAt,
 	)
 	if err != nil {
@@ -134,6 +144,16 @@ func (r *CategoryRepository) Create(ctx context.Context, name, nameEN, descripti
 
 // Update updates a category
 func (r *CategoryRepository) Update(ctx context.Context, id int32, name, nameEN, description string, sortOrder int) (*model.Category, error) {
+	// Check if name or name_en already exists (exclude current category)
+	var exists bool
+	err := r.DB().GetContext(ctx, &exists, `SELECT EXISTS(SELECT 1 FROM categories WHERE (name = $1 OR name_en = $2) AND id != $3)`, name, nameEN, id)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, postgresql.ErrDuplicateKey
+	}
+
 	query := `
 		UPDATE categories
 		SET name = $1, name_en = $2, description = $3, sort_order = $4, updated_at = NOW()
@@ -142,7 +162,7 @@ func (r *CategoryRepository) Update(ctx context.Context, id int32, name, nameEN,
 	`
 
 	var cat model.Category
-	err := r.DB().QueryRowContext(ctx, query, name, nameEN, toNullString(&description), sortOrder, id).Scan(
+	err = r.DB().QueryRowContext(ctx, query, name, nameEN, toNullString(&description), sortOrder, id).Scan(
 		&cat.ID, &cat.Name, &cat.NameEN, &cat.Description, &cat.SortOrder, &cat.CreatedAt, &cat.UpdatedAt,
 	)
 	if err != nil {
