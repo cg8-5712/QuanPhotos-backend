@@ -1428,16 +1428,20 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - platform
               properties:
-                content:
+                platform:
                   type: string
-                share_type:
+                  enum: [twitter, facebook, weibo, wechat, link]
+                  description: Share platform
+                note:
                   type: string
-                  enum: [internal, external]
-                  default: internal
+                  maxLength: 500
+                  description: Optional share note
       responses:
         '200':
-          description: Shared
+          description: Success
           content:
             application/json:
               schema:
@@ -1448,8 +1452,8 @@ paths:
                       data:
                         type: object
                         properties:
-                          share_id:
-                            type: integer
+                          share_url:
+                            type: string
                           share_count:
                             type: integer
 

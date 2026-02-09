@@ -1412,7 +1412,7 @@ Authorization: Bearer <access_token>
 
 ---
 
-### 转发照片
+### 分享照片
 
 ```
 POST /photos/:id/share
@@ -1428,8 +1428,8 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-  "content": "string",         // 转发说明（可选）
-  "share_type": "internal"     // 转发类型：internal（站内）/external（站外，仅记录）
+  "platform": "string",        // 必填，分享平台：twitter/facebook/weibo/wechat/link
+  "note": "string"             // 可选，分享备注（最多 500 字）
 }
 ```
 
@@ -1438,10 +1438,10 @@ Authorization: Bearer <access_token>
 ```json
 {
   "code": 0,
-  "message": "shared",
+  "message": "success",
   "data": {
-    "share_id": 789,
-    "share_count": 50
+    "share_url": "http://localhost:8080/photos/123",
+    "share_count": 51
   }
 }
 ```
